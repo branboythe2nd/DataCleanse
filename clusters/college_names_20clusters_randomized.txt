@@ -1,0 +1,155 @@
+# Company Name Clusters
+
+Total clusters: 2
+
+Cluster 0 (unique: 28, total: 28)
+
+  - Berkeley  x1
+  - Carnegie Mellon University  x1
+  - Columbia University  x1
+  - Columbia University in the City of New York  x1
+  - Cornell  x1
+  - Cornell University  x1
+  - Duke University  x1
+  - Harvard  x1
+  - Harvard University  x1
+  - Princeton  x1
+  - Princeton University  x1
+  - Purdue University  x1
+  - Stanford  x1
+  - Stanford University  x1
+  - UC Berkeley  x1
+  - UC Davis  x1
+  - UC San Diego  x1
+  - University of California, Berkeley  x1
+  - University of California, Davis  x1
+  - University of California, Los Angeles  x1
+  - University of California, San Diego  x1
+  - University of Florida  x1
+  - University of Maryland  x1
+  - University of Maryland, College Park  x1
+  - University of Virginia  x1
+  - Virginia Polytechnic Institute  x1
+  - Virginia Polytechnic Institute and State University  x1
+  - Virginia Tech  x1
+
+Cluster 1 (unique: 1, total: 1)
+
+  - VPI&SU  x1
+
+Cluster misc (unique: 2, total: 2)
+
+  - VPI  x1
+  - VT  x1
+
+Cluster VT (singleton)
+
+  - VT  x1
+
+Cluster VPI (singleton)
+
+  - VPI  x1
+
+Cluster UCLA (singleton)
+
+  - UCLA  x1
+
+Cluster Massachusetts Institute of Technology (singleton)
+
+  - Massachusetts Institute of Technology  x1
+
+Cluster Maryland (singleton)
+
+  - Maryland  x1
+
+Cluster Leland Stanford Junior University (singleton)
+
+  - Leland Stanford Junior University  x1
+
+Cluster Georgia Institute of Technology (singleton)
+
+  - Georgia Institute of Technology  x1
+
+Cluster Purdue (singleton)
+
+  - Purdue  x1
+
+Cluster UConn (singleton)
+
+  - UConn  x1
+
+Cluster UCD (singleton)
+
+  - UCD  x1
+
+Cluster CMU (singleton)
+
+  - CMU  x1
+
+Cluster GT (singleton)
+
+  - GT  x1
+
+Cluster University of Connecticut (singleton)
+
+  - University of Connecticut  x1
+
+Cluster Cal (singleton)
+
+  - Cal  x1
+
+Cluster UMD (singleton)
+
+  - UMD  x1
+
+Cluster MIT (singleton)
+
+  - MIT  x1
+
+Cluster University of Pennsylvania (singleton)
+
+  - University of Pennsylvania  x1
+
+Cluster Columbia (singleton)
+
+  - Columbia  x1
+
+Cluster UF (singleton)
+
+  - UF  x1
+
+Cluster UCSD (singleton)
+
+  - UCSD  x1
+
+Cluster GaTech (singleton)
+
+  - GaTech  x1
+
+Cluster UVA (singleton)
+
+  - UVA  x1
+
+Cluster Penn (singleton)
+
+  - Penn  x1
+
+Cluster Florida (singleton)
+
+  - Florida  x1
+
+Cluster Carnegie Mellon (singleton)
+
+  - Carnegie Mellon  x1
+
+Cluster UPenn (singleton)
+
+  - UPenn  x1
+
+Cluster Duke (singleton)
+
+  - Duke  x1
+
+Cluster Georgia Tech (singleton)
+
+  - Georgia Tech  x1

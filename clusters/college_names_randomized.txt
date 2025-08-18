@@ -1,0 +1,973 @@
+# Company Name Clusters
+
+Total clusters: 5
+
+Cluster 0 (unique: 188, total: 188)
+
+  - Arizona State  x1
+  - Arizona State University  x1
+  - Auburn  x1
+  - Auburn University  x1
+  - Australian National University  x1
+  - Baruch College  x1
+  - Berkeley  x1
+  - Binghamton University  x1
+  - Boston College  x1
+  - Boston University  x1
+  - Brown University  x1
+  - Cal  x1
+  - California Institute of Technology  x1
+  - California Polytechnic State University, San Luis Obispo  x1
+  - California State Polytechnic University, Pomona  x1
+  - California State University, Fullerton  x1
+  - California State University, Long Beach  x1
+  - Cambridge  x1
+  - Carnegie Mellon  x1
+  - Carnegie Mellon University  x1
+  - Clemson  x1
+  - Clemson University  x1
+  - College of William and Mary  x1
+  - Colorado State  x1
+  - Colorado State University  x1
+  - Columbia University  x1
+  - Columbia University in the City of New York  x1
+  - Cornell  x1
+  - Cornell University  x1
+  - CUNY City College  x1
+  - Dartmouth  x1
+  - Dartmouth College  x1
+  - Duke  x1
+  - Duke University  x1
+  - Florida State  x1
+  - Florida State University  x1
+  - George Mason University  x1
+  - Georgia Tech  x1
+  - Harvard  x1
+  - Harvard University  x1
+  - Hunter College  x1
+  - Imperial College London  x1
+  - Indiana University  x1
+  - Indiana University Bloomington  x1
+  - Iowa  x1
+  - Iowa State  x1
+  - Iowa State University  x1
+  - IU Bloomington  x1
+  - Johns Hopkins  x1
+  - Johns Hopkins University  x1
+  - Kansas State University  x1
+  - Leland Stanford Junior University  x1
+  - Louisville  x1
+  - Massachusetts Institute of Technology  x1
+  - McGill University  x1
+  - Michigan State  x1
+  - Michigan State University  x1
+  - Mississippi State  x1
+  - Mississippi State University  x1
+  - Monash University  x1
+  - NC State  x1
+  - Nebraska  x1
+  - New Mexico State University  x1
+  - New York University  x1
+  - North Carolina State University  x1
+  - Northeastern University  x1
+  - Northern Arizona University  x1
+  - Northwestern  x1
+  - Northwestern University  x1
+  - Notre Dame  x1
+  - Ohio State  x1
+  - Oklahoma State  x1
+  - Oklahoma State University  x1
+  - Oregon State  x1
+  - Oregon State University  x1
+  - Oxford  x1
+  - Penn State  x1
+  - Pennsylvania State University  x1
+  - Princeton  x1
+  - Princeton University  x1
+  - Purdue  x1
+  - Purdue University  x1
+  - Rice University  x1
+  - San Diego State University  x1
+  - Stanford  x1
+  - Stanford University  x1
+  - Stony Brook University  x1
+  - Texas  x1
+  - Texas A&M University  x1
+  - The City College of New York  x1
+  - The Ohio State University  x1
+  - Tsinghua University  x1
+  - Tufts  x1
+  - Tufts University  x1
+  - UC Berkeley  x1
+  - UC Davis  x1
+  - UC Irvine  x1
+  - UC Merced  x1
+  - UC Riverside  x1
+  - UC San Diego  x1
+  - UC Santa Barbara  x1
+  - UC Santa Cruz  x1
+  - UMass Amherst  x1
+  - UNC‑Chapel Hill  x1
+  - University at Albany  x1
+  - University at Buffalo  x1
+  - University at Buffalo (SUNY)  x1
+  - University of Alabama  x1
+  - University of Arizona  x1
+  - University of Arkansas  x1
+  - University of Auckland  x1
+  - University of British Columbia  x1
+  - University of California, Berkeley  x1
+  - University of California, Davis  x1
+  - University of California, Irvine  x1
+  - University of California, Los Angeles  x1
+  - University of California, Merced  x1
+  - University of California, Riverside  x1
+  - University of California, San Diego  x1
+  - University of California, Santa Barbara  x1
+  - University of California, Santa Cruz  x1
+  - University of Cambridge  x1
+  - University of Central Florida  x1
+  - University of Chicago  x1
+  - University of Colorado Boulder  x1
+  - University of Delaware  x1
+  - University of Florida  x1
+  - University of Georgia  x1
+  - University of Hawai‘i at Mānoa  x1
+  - University of Illinois at Urbana–Champaign  x1
+  - University of Illinois Chicago  x1
+  - University of Illinois Urbana-Champaign  x1
+  - University of Iowa  x1
+  - University of Kansas  x1
+  - University of Kentucky  x1
+  - University of Louisville  x1
+  - University of Maine  x1
+  - University of Maryland  x1
+  - University of Maryland, College Park  x1
+  - University of Massachusetts Amherst  x1
+  - University of Melbourne  x1
+  - University of Michigan  x1
+  - University of Michigan–Ann Arbor  x1
+  - University of Minnesota  x1
+  - University of Minnesota Twin Cities  x1
+  - University of Mississippi  x1
+  - University of Missouri  x1
+  - University of Missouri–Columbia  x1
+  - University of Nebraska–Lincoln  x1
+  - University of Nevada, Las Vegas  x1
+  - University of Nevada, Reno  x1
+  - University of New Hampshire  x1
+  - University of New Mexico  x1
+  - University of North Carolina at Chapel Hill  x1
+  - University of North Florida  x1
+  - University of Notre Dame  x1
+  - University of Oklahoma  x1
+  - University of Oregon  x1
+  - University of Oxford  x1
+  - University of Pennsylvania  x1
+  - University of Rochester  x1
+  - University of South Carolina  x1
+  - University of South Florida  x1
+  - University of Southern California  x1
+  - University of Sydney  x1
+  - University of Tennessee  x1
+  - University of Tennessee, Knoxville  x1
+  - University of Texas at Austin  x1
+  - University of Toronto  x1
+  - University of Utah  x1
+  - University of Virginia  x1
+  - University of Washington  x1
+  - University of Waterloo  x1
+  - University of Wisconsin–Madison  x1
+  - USC (Columbia)  x1
+  - UT Austin  x1
+  - UW (Waterloo)  x1
+  - UW Madison  x1
+  - UW–Madison  x1
+  - Virginia Commonwealth University  x1
+  - Virginia Polytechnic Institute  x1
+  - Virginia Polytechnic Institute and State University  x1
+  - Virginia Tech  x1
+  - Washington State  x1
+  - Washington State University  x1
+  - Waterloo  x1
+  - Yale  x1
+  - Yale University  x1
+
+Cluster 1 (unique: 4, total: 4)
+
+  - Eidgenössische Technische Hochschule Zürich  x1
+  - ETH  x1
+  - ETH Zurich  x1
+  - ETH Zürich  x1
+
+Cluster 2 (unique: 3, total: 3)
+
+  - Rutgers  x1
+  - Rutgers University–New Brunswick  x1
+  - Rutgers–New Brunswick  x1
+
+Cluster 3 (unique: 2, total: 2)
+
+  - London School of Economics  x1
+  - London School of Economics and Political Science  x1
+
+Cluster 4 (unique: 2, total: 2)
+
+  - Vanderbilt  x1
+  - Vanderbilt University  x1
+
+Cluster misc (unique: 9, total: 10)
+
+  - UA  x2
+  - BC  x1
+  - CCNY  x1
+  - GT  x1
+  - LSE  x1
+  - MIT  x1
+  - ND  x1
+  - VPI  x1
+  - VT  x1
+
+Cluster UNL (singleton)
+
+  - UNL  x1
+
+Cluster UIC (singleton)
+
+  - UIC  x1
+
+Cluster Hunter (singleton)
+
+  - Hunter  x1
+
+Cluster SUNY Albany (singleton)
+
+  - SUNY Albany  x1
+
+Cluster OSU (singleton)
+
+  - OSU  x3
+
+Cluster GMU (singleton)
+
+  - GMU  x1
+
+Cluster W&M (singleton)
+
+  - W&M  x1
+
+Cluster Northeastern (singleton)
+
+  - Northeastern  x1
+
+Cluster ND (singleton)
+
+  - ND  x1
+
+Cluster University of Houston (singleton)
+
+  - University of Houston  x1
+
+Cluster U of R (singleton)
+
+  - U of R  x1
+
+Cluster Beida (singleton)
+
+  - Beida  x1
+
+Cluster UCSD (singleton)
+
+  - UCSD  x1
+
+Cluster Peking University (singleton)
+
+  - Peking University  x1
+
+Cluster University of Vermont (singleton)
+
+  - University of Vermont  x1
+
+Cluster UNR (singleton)
+
+  - UNR  x1
+
+Cluster CU (singleton)
+
+  - CU  x1
+
+Cluster George Mason (singleton)
+
+  - George Mason  x1
+
+Cluster ISU (singleton)
+
+  - ISU  x1
+
+Cluster IU (singleton)
+
+  - IU  x1
+
+Cluster MIT (singleton)
+
+  - MIT  x1
+
+Cluster Sydney (singleton)
+
+  - Sydney  x1
+
+Cluster Pitt (singleton)
+
+  - Pitt  x1
+
+Cluster École Polytechnique Fédérale de Lausanne (singleton)
+
+  - École Polytechnique Fédérale de Lausanne  x1
+
+Cluster UD (singleton)
+
+  - UD  x1
+
+Cluster UCSC (singleton)
+
+  - UCSC  x1
+
+Cluster RPI (singleton)
+
+  - RPI  x1
+
+Cluster TAMU (singleton)
+
+  - TAMU  x1
+
+Cluster Melbourne (singleton)
+
+  - Melbourne  x1
+
+Cluster Binghamton (singleton)
+
+  - Binghamton  x1
+
+Cluster Mizzou (singleton)
+
+  - Mizzou  x1
+
+Cluster PSU (singleton)
+
+  - PSU  x1
+
+Cluster Minnesota (singleton)
+
+  - Minnesota  x1
+
+Cluster Arizona (singleton)
+
+  - Arizona  x1
+
+Cluster CCNY (singleton)
+
+  - CCNY  x1
+
+Cluster UPenn (singleton)
+
+  - UPenn  x1
+
+Cluster WSU (singleton)
+
+  - WSU  x1
+
+Cluster UCR (singleton)
+
+  - UCR  x1
+
+Cluster U of I (singleton)
+
+  - U of I  x1
+
+Cluster Maryland (singleton)
+
+  - Maryland  x1
+
+Cluster UMich (singleton)
+
+  - UMich  x1
+
+Cluster Rice (singleton)
+
+  - Rice  x1
+
+Cluster UIUC (singleton)
+
+  - UIUC  x1
+
+Cluster Utah (singleton)
+
+  - Utah  x1
+
+Cluster UCLA (singleton)
+
+  - UCLA  x1
+
+Cluster NEU (singleton)
+
+  - NEU  x1
+
+Cluster USyd (singleton)
+
+  - USyd  x1
+
+Cluster UAF (singleton)
+
+  - UAF  x1
+
+Cluster UofL (singleton)
+
+  - UofL  x1
+
+Cluster SDSU (singleton)
+
+  - SDSU  x1
+
+Cluster Auckland (singleton)
+
+  - Auckland  x1
+
+Cluster UCSB (singleton)
+
+  - UCSB  x1
+
+Cluster Monash (singleton)
+
+  - Monash  x1
+
+Cluster University of Pittsburgh (singleton)
+
+  - University of Pittsburgh  x1
+
+Cluster Carolina (singleton)
+
+  - Carolina  x1
+
+Cluster UMN (singleton)
+
+  - UMN  x1
+
+Cluster U of T (singleton)
+
+  - U of T  x1
+
+Cluster UH (singleton)
+
+  - UH  x1
+
+Cluster UF (singleton)
+
+  - UF  x1
+
+Cluster FSU (singleton)
+
+  - FSU  x1
+
+Cluster Baruch (singleton)
+
+  - Baruch  x1
+
+Cluster NCSU (singleton)
+
+  - NCSU  x1
+
+Cluster Kentucky (singleton)
+
+  - Kentucky  x1
+
+Cluster UA (singleton)
+
+  - UA  x2
+
+Cluster UofSC (singleton)
+
+  - UofSC  x1
+
+Cluster CSULB (singleton)
+
+  - CSULB  x1
+
+Cluster NYU (singleton)
+
+  - NYU  x1
+
+Cluster Alabama (singleton)
+
+  - Alabama  x1
+
+Cluster UK (singleton)
+
+  - UK  x1
+
+Cluster K‑State (singleton)
+
+  - K‑State  x1
+
+Cluster KU (singleton)
+
+  - KU  x1
+
+Cluster UQ (singleton)
+
+  - UQ  x1
+
+Cluster UH Manoa (singleton)
+
+  - UH Manoa  x1
+
+Cluster Caltech (singleton)
+
+  - Caltech  x1
+
+Cluster University of Rhode Island (singleton)
+
+  - University of Rhode Island  x1
+
+Cluster Cal Poly Pomona (singleton)
+
+  - Cal Poly Pomona  x1
+
+Cluster CMU (singleton)
+
+  - CMU  x1
+
+Cluster Columbia (singleton)
+
+  - Columbia  x1
+
+Cluster EPFL (singleton)
+
+  - EPFL  x1
+
+Cluster VPI (singleton)
+
+  - VPI  x1
+
+Cluster MSU (singleton)
+
+  - MSU  x2
+
+Cluster SUNY Buffalo (singleton)
+
+  - SUNY Buffalo  x1
+
+Cluster UT (singleton)
+
+  - UT  x1
+
+Cluster UCF (singleton)
+
+  - UCF  x1
+
+Cluster McGill (singleton)
+
+  - McGill  x1
+
+Cluster University of Connecticut (singleton)
+
+  - University of Connecticut  x1
+
+Cluster Southern Cal (singleton)
+
+  - Southern Cal  x1
+
+Cluster UM (singleton)
+
+  - UM  x2
+
+Cluster Cal Poly SLO (singleton)
+
+  - Cal Poly SLO  x1
+
+Cluster UNC (singleton)
+
+  - UNC  x1
+
+Cluster U of U (singleton)
+
+  - U of U  x1
+
+Cluster University of Queensland (singleton)
+
+  - University of Queensland  x1
+
+Cluster UArk (singleton)
+
+  - UArk  x1
+
+Cluster VCU (singleton)
+
+  - VCU  x1
+
+Cluster Toronto (singleton)
+
+  - Toronto  x1
+
+Cluster NTU (singleton)
+
+  - NTU  x1
+
+Cluster UR (singleton)
+
+  - UR  x1
+
+Cluster NTU Singapore (singleton)
+
+  - NTU Singapore  x1
+
+Cluster Georgia Institute of Technology (singleton)
+
+  - Georgia Institute of Technology  x1
+
+Cluster VPI&SU (singleton)
+
+  - VPI&SU  x1
+
+Cluster Rochester Institute of Technology (singleton)
+
+  - Rochester Institute of Technology  x1
+
+Cluster Cal Poly (singleton)
+
+  - Cal Poly  x1
+
+Cluster UChicago (singleton)
+
+  - UChicago  x1
+
+Cluster SUNY Stony Brook (singleton)
+
+  - SUNY Stony Brook  x1
+
+Cluster CSU (singleton)
+
+  - CSU  x1
+
+Cluster University of Alaska Fairbanks (singleton)
+
+  - University of Alaska Fairbanks  x1
+
+Cluster Brown (singleton)
+
+  - Brown  x1
+
+Cluster Delaware (singleton)
+
+  - Delaware  x1
+
+Cluster UW Seattle (singleton)
+
+  - UW Seattle  x1
+
+Cluster UNM (singleton)
+
+  - UNM  x1
+
+Cluster CSUF (singleton)
+
+  - CSUF  x1
+
+Cluster UoA (singleton)
+
+  - UoA  x1
+
+Cluster UGA (singleton)
+
+  - UGA  x1
+
+Cluster CU Boulder (singleton)
+
+  - CU Boulder  x1
+
+Cluster JHU (singleton)
+
+  - JHU  x1
+
+Cluster NUS (singleton)
+
+  - NUS  x1
+
+Cluster Arkansas (singleton)
+
+  - Arkansas  x1
+
+Cluster GT (singleton)
+
+  - GT  x1
+
+Cluster UCI (singleton)
+
+  - UCI  x1
+
+Cluster UConn (singleton)
+
+  - UConn  x1
+
+Cluster Imperial (singleton)
+
+  - Imperial  x1
+
+Cluster MU (singleton)
+
+  - MU  x1
+
+Cluster UBC (singleton)
+
+  - UBC  x1
+
+Cluster UTK (singleton)
+
+  - UTK  x1
+
+Cluster UNLV (singleton)
+
+  - UNLV  x1
+
+Cluster Oregon (singleton)
+
+  - Oregon  x1
+
+Cluster UMaine (singleton)
+
+  - UMaine  x1
+
+Cluster CPP (singleton)
+
+  - CPP  x1
+
+Cluster Long Beach State (singleton)
+
+  - Long Beach State  x1
+
+Cluster CUNY Hunter (singleton)
+
+  - CUNY Hunter  x1
+
+Cluster UAlbany (singleton)
+
+  - UAlbany  x1
+
+Cluster UNH (singleton)
+
+  - UNH  x1
+
+Cluster URI (singleton)
+
+  - URI  x1
+
+Cluster ANU (singleton)
+
+  - ANU  x1
+
+Cluster RIT (singleton)
+
+  - RIT  x1
+
+Cluster UW (singleton)
+
+  - UW  x2
+
+Cluster SUNY Binghamton (singleton)
+
+  - SUNY Binghamton  x1
+
+Cluster VU (singleton)
+
+  - VU  x1
+
+Cluster ASU (singleton)
+
+  - ASU  x1
+
+Cluster LSE (singleton)
+
+  - LSE  x1
+
+Cluster UIowa (singleton)
+
+  - UIowa  x1
+
+Cluster UVA (singleton)
+
+  - UVA  x1
+
+Cluster GaTech (singleton)
+
+  - GaTech  x1
+
+Cluster Florida (singleton)
+
+  - Florida  x1
+
+Cluster Ole Miss (singleton)
+
+  - Ole Miss  x1
+
+Cluster NAU (singleton)
+
+  - NAU  x1
+
+Cluster UofT (singleton)
+
+  - UofT  x1
+
+Cluster Stony Brook (singleton)
+
+  - Stony Brook  x1
+
+Cluster PKU (singleton)
+
+  - PKU  x1
+
+Cluster VT (singleton)
+
+  - VT  x1
+
+Cluster CUNY Baruch (singleton)
+
+  - CUNY Baruch  x1
+
+Cluster UCD (singleton)
+
+  - UCD  x1
+
+Cluster William & Mary (singleton)
+
+  - William & Mary  x1
+
+Cluster USF (singleton)
+
+  - USF  x1
+
+Cluster Texas A&M (singleton)
+
+  - Texas A&M  x1
+
+Cluster BC (singleton)
+
+  - BC  x1
+
+Cluster UNF (singleton)
+
+  - UNF  x1
+
+Cluster UniMelb (singleton)
+
+  - UniMelb  x1
+
+Cluster A&M (singleton)
+
+  - A&M  x1
+
+Cluster USC (singleton)
+
+  - USC  x1
+
+Cluster Tennessee (singleton)
+
+  - Tennessee  x1
+
+Cluster BYU (singleton)
+
+  - BYU  x1
+
+Cluster U‑M (singleton)
+
+  - U‑M  x1
+
+Cluster UU (singleton)
+
+  - UU  x1
+
+Cluster UMass (singleton)
+
+  - UMass  x1
+
+Cluster Brigham Young University (singleton)
+
+  - Brigham Young University  x1
+
+Cluster Rensselaer Polytechnic Institute (singleton)
+
+  - Rensselaer Polytechnic Institute  x1
+
+Cluster UB (singleton)
+
+  - UB  x1
+
+Cluster Penn (singleton)
+
+  - Penn  x1
+
+Cluster UMD (singleton)
+
+  - UMD  x1
+
+Cluster Colorado (singleton)
+
+  - Colorado  x1
+
+Cluster National University of Singapore (singleton)
+
+  - National University of Singapore  x1
+
+Cluster Wisconsin (singleton)
+
+  - Wisconsin  x1
+
+Cluster UH Mānoa (singleton)
+
+  - UH Mānoa  x1
+
+Cluster Nanyang Technological University (singleton)
+
+  - Nanyang Technological University  x1
+
+Cluster UO (singleton)
+
+  - UO  x1
+
+Cluster UVM (singleton)
+
+  - UVM  x1
+
+Cluster SBU (singleton)
+
+  - SBU  x1
+
+Cluster Tsinghua (singleton)
+
+  - Tsinghua  x1
+
+Cluster UCM (singleton)
+
+  - UCM  x1
+
+Cluster OU (singleton)
+
+  - OU  x1
+
+Cluster BU (singleton)
+
+  - BU  x1
+
+Cluster U of Maine (singleton)
+
+  - U of Maine  x1
+
+Cluster Illinois (singleton)
+
+  - Illinois  x1
+
+Cluster South Carolina (singleton)
+
+  - South Carolina  x1
+
+Cluster NMSU (singleton)
+
+  - NMSU  x1

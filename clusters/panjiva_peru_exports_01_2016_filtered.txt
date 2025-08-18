@@ -1,0 +1,656 @@
+# Company Name Clusters
+
+Total clusters: 163
+
+Cluster 1 (unique: 2, total: 22)
+
+  - Inversiones Peru Pacifico S.A  x13
+  - Inversiones Holding Peru Sociedad Anonim  x9
+
+Cluster 0 (unique: 1, total: 18)
+
+  - Langostinera Ramona S.A.C.  x18
+
+Cluster 2 (unique: 1, total: 51)
+
+  - Perupez S.A.C.  x51
+
+Cluster 3 (unique: 1, total: 4)
+
+  - Piscifactorias De Los  x4
+
+Cluster 4 (unique: 1, total: 33)
+
+  - Consorcio Industrial El Pacifico Socieda  x33
+
+Cluster 5 (unique: 1, total: 8)
+
+  - Empresa Pesquera Ocean Fish S.A.C.  x8
+
+Cluster 6 (unique: 1, total: 104)
+
+  - Productora Andina De Congelados  x104
+
+Cluster 7 (unique: 1, total: 75)
+
+  - Sercosta Sac  x75
+
+Cluster 8 (unique: 1, total: 17)
+
+  - Pesquera Hayduk S.A.  x17
+
+Cluster 9 (unique: 1, total: 5)
+
+  - Inversiones Silma Sac  x5
+
+Cluster 10 (unique: 1, total: 20)
+
+  - Matarani Sociedad Anonima Cerrada  x20
+
+Cluster 11 (unique: 1, total: 10)
+
+  - Sakana Del Peru S.A  x10
+
+Cluster 12 (unique: 1, total: 28)
+
+  - Corp. De Ingenieria De Refrigeracion  x28
+
+Cluster 13 (unique: 1, total: 37)
+
+  - Marfrio   Vieira Peru S.A.  x37
+
+Cluster 14 (unique: 1, total: 2)
+
+  - Rio Momon E.I.R.L.  x2
+
+Cluster 15 (unique: 1, total: 12)
+
+  - Corporacion Internacional Manex S.A.C.  x12
+
+Cluster 16 (unique: 1, total: 26)
+
+  - Costa Mira Sociedad Anonima Cerrada  x26
+
+Cluster 17 (unique: 1, total: 48)
+
+  - Seafrost S.A.C.  x48
+
+Cluster 18 (unique: 1, total: 82)
+
+  - Inversiones Prisco S A C  x82
+
+Cluster 19 (unique: 1, total: 42)
+
+  - Produmar   Proveedora De Productos  x42
+
+Cluster 20 (unique: 1, total: 40)
+
+  - Corporacion Refrigerados Iny S. A.  x40
+
+Cluster 21 (unique: 1, total: 20)
+
+  - Cultimarine S.A.C.  x20
+
+Cluster 22 (unique: 1, total: 23)
+
+  - Refrigerados Fisholg & Hijos Sac  x23
+
+Cluster 23 (unique: 1, total: 8)
+
+  - Spring Valley Fruit S.A.C.  x8
+
+Cluster 24 (unique: 1, total: 4)
+
+  - Acuario Valentina E.I.R.L  x4
+
+Cluster 25 (unique: 1, total: 5)
+
+  - El Bosque Empresa Individual De R  x5
+
+Cluster 26 (unique: 1, total: 61)
+
+  - Eco   Acuicola Sociedad Anonima Cerrada  x61
+
+Cluster 27 (unique: 1, total: 16)
+
+  - J.R. Tropical Fish Amazon Peru Empresa I  x16
+
+Cluster 28 (unique: 1, total: 5)
+
+  - Exportadora Cetus S.A.C.  x5
+
+Cluster 29 (unique: 1, total: 9)
+
+  - Rofayce Sac  x9
+
+Cluster 30 (unique: 1, total: 28)
+
+  - Armadores Y Congeladores Del  x28
+
+Cluster 31 (unique: 1, total: 5)
+
+  - M.I.K Carpe S.A.C  x5
+
+Cluster 32 (unique: 1, total: 8)
+
+  - Axsa Servicios Generales Sociedad Anonim  x8
+
+Cluster 33 (unique: 1, total: 3)
+
+  - Garcia Barrantes Hector Manuel  x3
+
+Cluster 34 (unique: 1, total: 21)
+
+  - Altamar Foods Peru S.A.C.  x21
+
+Cluster 35 (unique: 1, total: 1)
+
+  - Azul Recursos S.A.C.  x1
+
+Cluster 36 (unique: 1, total: 14)
+
+  - Langostinera Cardalito Sac  x14
+
+Cluster 37 (unique: 1, total: 28)
+
+  - Acuatrade S.A.C.  x28
+
+Cluster 38 (unique: 1, total: 4)
+
+  - Illari Sociedad Anonima Cerrada  x4
+
+Cluster 39 (unique: 1, total: 56)
+
+  - Marinazul S.A.  x56
+
+Cluster 40 (unique: 1, total: 21)
+
+  - Frozen Products Corp.  x21
+
+Cluster 41 (unique: 1, total: 7)
+
+  - Yacurunas International Enterprise E.I.  x7
+
+Cluster 42 (unique: 1, total: 19)
+
+  - Alamesa S.A.C.  x19
+
+Cluster 43 (unique: 1, total: 55)
+
+  - Dexim Srl  x55
+
+Cluster 44 (unique: 1, total: 25)
+
+  - Pesquera Abc Sac  x25
+
+Cluster 45 (unique: 1, total: 4)
+
+  - Intriago Alvarez Jose Gregorio  x4
+
+Cluster 46 (unique: 1, total: 18)
+
+  - Kampo Marino Peru S.R.Ltda.  x18
+
+Cluster 47 (unique: 1, total: 1)
+
+  - Premium Fish S.A.C.  x1
+
+Cluster 48 (unique: 1, total: 16)
+
+  - Pacific Freezing Company S.A.C.  x16
+
+Cluster 49 (unique: 1, total: 12)
+
+  - La Fragata S.A.  x12
+
+Cluster 50 (unique: 1, total: 4)
+
+  - Negocios Alimentarios Srl  x4
+
+Cluster 51 (unique: 1, total: 11)
+
+  - Bio Industrial Amazonas S.A.C.  x11
+
+Cluster 52 (unique: 1, total: 16)
+
+  - Sr Export S.A.C.  x16
+
+Cluster 53 (unique: 1, total: 1)
+
+  - Import Export Li Sociedad Anonima Cerrad  x1
+
+Cluster 54 (unique: 1, total: 7)
+
+  - Aquarium Panduro E.I.R.L.  x7
+
+Cluster 55 (unique: 1, total: 4)
+
+  - Acuacultura Y Pesca Sac  x4
+
+Cluster 56 (unique: 1, total: 2)
+
+  - Aquatropical S.A.C  x2
+
+Cluster 57 (unique: 1, total: 16)
+
+  - Peruvian Sea Food S.A.  x16
+
+Cluster 58 (unique: 1, total: 1)
+
+  - Roe Pack Sac  x1
+
+Cluster 59 (unique: 1, total: 7)
+
+  - Servicios Maritimos Santa Elena  x7
+
+Cluster 60 (unique: 1, total: 8)
+
+  - Aquacultivos Del Pacifico S.A.C.  x8
+
+Cluster 61 (unique: 1, total: 2)
+
+  - Green Fish Aquarium Empresa Individual D  x2
+
+Cluster 62 (unique: 1, total: 36)
+
+  - Industrial Pesquera Santa Monica S.A.  x36
+
+Cluster 63 (unique: 1, total: 6)
+
+  - Blue Pacific Oils S.A.  x6
+
+Cluster 64 (unique: 1, total: 4)
+
+  - Armavi S.A.C.  x4
+
+Cluster 65 (unique: 1, total: 5)
+
+  - Exmarsu Sac  x5
+
+Cluster 66 (unique: 1, total: 11)
+
+  - Propemar Peru Sac  x11
+
+Cluster 67 (unique: 1, total: 4)
+
+  - Peruvian Seabass Sociedad Anonima Cerrad  x4
+
+Cluster 68 (unique: 1, total: 7)
+
+  - Anchoveta S.A.C.  x7
+
+Cluster 69 (unique: 1, total: 2)
+
+  - Don Fernando Sac  x2
+
+Cluster 70 (unique: 1, total: 4)
+
+  - Novaperu S.A.C.  x4
+
+Cluster 71 (unique: 1, total: 8)
+
+  - Agromarina Del Peru S.A.C.  x8
+
+Cluster 72 (unique: 1, total: 1)
+
+  - Atlantis Force S.A.C.  x1
+
+Cluster 73 (unique: 1, total: 11)
+
+  - Cnc Sac  x11
+
+Cluster 74 (unique: 1, total: 6)
+
+  - Inversiones Sancco S.A.C.  x6
+
+Cluster 75 (unique: 1, total: 1)
+
+  - Exportaciones E & D E.I.R.L.  x1
+
+Cluster 76 (unique: 1, total: 9)
+
+  - Agrofish Sac  x9
+
+Cluster 77 (unique: 1, total: 2)
+
+  - Daewon Susan Eirl  x2
+
+Cluster 78 (unique: 1, total: 5)
+
+  - Fernandez Srl  x5
+
+Cluster 79 (unique: 1, total: 4)
+
+  - Mai Shi Group S.A.C.  x4
+
+Cluster 80 (unique: 1, total: 3)
+
+  - Conservera San Lucas Sociedad Anonima Ce  x3
+
+Cluster 81 (unique: 1, total: 4)
+
+  - Pescados Y Cefalopodos Del Peru S.A  x4
+
+Cluster 82 (unique: 1, total: 4)
+
+  - Jrw Exportaciones Importaciones Sociedad  x4
+
+Cluster 83 (unique: 1, total: 4)
+
+  - Ccoral S.A  x4
+
+Cluster 84 (unique: 1, total: 9)
+
+  - CompaÑia Americana De Conservas S.A.C.  x9
+
+Cluster 85 (unique: 1, total: 32)
+
+  - Peruvian Andean Trout S.A.C.  x32
+
+Cluster 86 (unique: 1, total: 6)
+
+  - River Land Peru S.A.C  x6
+
+Cluster 87 (unique: 1, total: 5)
+
+  - Sama Comercial S.A.C.  x5
+
+Cluster 88 (unique: 1, total: 8)
+
+  - Produpesca S.A.C.  x8
+
+Cluster 89 (unique: 1, total: 2)
+
+  - Espinoza Rantes Luis Antonio  x2
+
+Cluster 90 (unique: 1, total: 6)
+
+  - Isamar Products E.I.R.I  x6
+
+Cluster 91 (unique: 1, total: 13)
+
+  - Aquarium San Pedro S.R.L.  x13
+
+Cluster 92 (unique: 1, total: 12)
+
+  - Pesquera Diamante S.A.  x12
+
+Cluster 93 (unique: 1, total: 3)
+
+  - Mangiare Foods Sociedad Anonima Cerrada  x3
+
+Cluster 94 (unique: 1, total: 8)
+
+  - Harrisson Vigil Jose Martin Ignacio  x8
+
+Cluster 95 (unique: 1, total: 8)
+
+  - Del Valle Sociedad Anonima Cerrada  x8
+
+Cluster 96 (unique: 1, total: 6)
+
+  - Consernova Sociedad Anonima Cerrada  x6
+
+Cluster 97 (unique: 1, total: 2)
+
+  - Copersa S.A.  x2
+
+Cluster 98 (unique: 1, total: 23)
+
+  - Cmar Sociedad Anonima Cerrada   Cma  x23
+
+Cluster 99 (unique: 1, total: 6)
+
+  - Acuario Japan Dragon Club Empresa Indivi  x6
+
+Cluster 100 (unique: 1, total: 5)
+
+  - Pez De Exportacion S.A.C.  x5
+
+Cluster 101 (unique: 1, total: 7)
+
+  - Langostinera Tumbes S.A.C.  x7
+
+Cluster 102 (unique: 1, total: 6)
+
+  - Criador El Guamito S.A.C.  x6
+
+Cluster 103 (unique: 1, total: 2)
+
+  - Puertos Del Pacifico S.A  x2
+
+Cluster 104 (unique: 1, total: 7)
+
+  - Pesquera Exalmar  x7
+
+Cluster 105 (unique: 1, total: 1)
+
+  - Sea Protein S.A.  x1
+
+Cluster 106 (unique: 1, total: 1)
+
+  - Natural Protein Technologies  x1
+
+Cluster 107 (unique: 1, total: 2)
+
+  - Takenaka Kuroiwa Marco Antonio  x2
+
+Cluster 108 (unique: 1, total: 5)
+
+  - Tumimar Srl  x5
+
+Cluster 109 (unique: 1, total: 5)
+
+  - Vasquez Marcos Marcelino  x5
+
+Cluster 110 (unique: 1, total: 2)
+
+  - A.P. Pesca Sociedad Comercial De Respons  x2
+
+Cluster 111 (unique: 1, total: 3)
+
+  - Langostinera Ulises Sa  x3
+
+Cluster 112 (unique: 1, total: 8)
+
+  - Service Import Export Sociedad Anonima C  x8
+
+Cluster 113 (unique: 1, total: 8)
+
+  - Amazon Tropicals Aquarium Eirl  x8
+
+Cluster 114 (unique: 1, total: 1)
+
+  - Pesquera Hucor Export Eirl  x1
+
+Cluster 115 (unique: 1, total: 3)
+
+  - Peruvian Rivers E.I.R.L.  x3
+
+Cluster 116 (unique: 1, total: 6)
+
+  - Corporacion Pesquera Del Mar Sociedad An  x6
+
+Cluster 117 (unique: 1, total: 1)
+
+  - Colan Fishing Sociedad Anonima Cerrada  x1
+
+Cluster 118 (unique: 1, total: 2)
+
+  - Seco Peru Sac  x2
+
+Cluster 119 (unique: 1, total: 1)
+
+  - Gervasi Peru S.A.C.  x1
+
+Cluster 120 (unique: 1, total: 1)
+
+  - Italia Pacifico Srl  x1
+
+Cluster 121 (unique: 1, total: 7)
+
+  - Umi Foods S.A.C.  x7
+
+Cluster 122 (unique: 1, total: 3)
+
+  - Long Wong Sociedad Anonina Cerrada  Long  x3
+
+Cluster 123 (unique: 1, total: 2)
+
+  - Agropesca E.I.R.L  x2
+
+Cluster 124 (unique: 1, total: 3)
+
+  - Langostinera Macori Srl  x3
+
+Cluster 125 (unique: 1, total: 7)
+
+  - Pesquera San Lucas S.A.C.  x7
+
+Cluster 126 (unique: 1, total: 4)
+
+  - Sully Seafoods E.I.R.L.  x4
+
+Cluster 127 (unique: 1, total: 4)
+
+  - Corporacion Isla Blanca S.A.C.  x4
+
+Cluster 128 (unique: 1, total: 3)
+
+  - Amazon Country Exports S.A.C.  x3
+
+Cluster 129 (unique: 1, total: 3)
+
+  - Isla Bella S.A.C  x3
+
+Cluster 130 (unique: 1, total: 2)
+
+  - South Coast Packing Peru Sac  x2
+
+Cluster 131 (unique: 1, total: 9)
+
+  - Maritima Del World S.A.C.  x9
+
+Cluster 132 (unique: 1, total: 2)
+
+  - Galicant S.A.C.  x2
+
+Cluster 133 (unique: 1, total: 3)
+
+  - Yamasan Pesca S.A.C.  x3
+
+Cluster 134 (unique: 1, total: 1)
+
+  - Valrep Internacional S.A.C  x1
+
+Cluster 135 (unique: 1, total: 3)
+
+  - Conservera De Las America  x3
+
+Cluster 136 (unique: 1, total: 4)
+
+  - Andrea Tatiana Suing Labanda  x4
+
+Cluster 137 (unique: 1, total: 3)
+
+  - Seacorp Peru S.A.C.  x3
+
+Cluster 138 (unique: 1, total: 5)
+
+  - Malbomiz Imp. Exp. Srl  x5
+
+Cluster 139 (unique: 1, total: 3)
+
+  - Neotropical Fauna Eirl  x3
+
+Cluster 140 (unique: 1, total: 1)
+
+  - Alimentos Congelados S.A.C.  x1
+
+Cluster 141 (unique: 1, total: 2)
+
+  - Corporacion Pesquera 1313 S.A.  x2
+
+Cluster 142 (unique: 1, total: 2)
+
+  - Zheng Xiaoou  x2
+
+Cluster 143 (unique: 1, total: 3)
+
+  - Freeko Peru S.A.  x3
+
+Cluster 144 (unique: 1, total: 2)
+
+  - Exportaciones Rodimac S.A.C.  x2
+
+Cluster 145 (unique: 1, total: 6)
+
+  - Acuicola Santa Isabel S.A.C.  x6
+
+Cluster 146 (unique: 1, total: 2)
+
+  - Ksl S.A.C.  x2
+
+Cluster 147 (unique: 1, total: 2)
+
+  - Galser Sociedad Anonima Cerrada  x2
+
+Cluster 148 (unique: 1, total: 1)
+
+  - Exportaciones Liviamar Sac  x1
+
+Cluster 149 (unique: 1, total: 2)
+
+  - Inversiones Y Negocios Internacionales E  x2
+
+Cluster 150 (unique: 1, total: 1)
+
+  - La Colonial Trading Company S.A.C.  x1
+
+Cluster 151 (unique: 1, total: 2)
+
+  - Coello MuÑoz Gabriel Alberto  x2
+
+Cluster 152 (unique: 1, total: 2)
+
+  - Langostinera La Bocana Sa  x2
+
+Cluster 153 (unique: 1, total: 2)
+
+  - Mont Blanc Export S.R Ltda  x2
+
+Cluster 154 (unique: 1, total: 3)
+
+  - Pirai Empresa Individual De Responsabili  x3
+
+Cluster 155 (unique: 1, total: 1)
+
+  - Mf Turtles & Tropical Fish E.I.R.L.  x1
+
+Cluster 156 (unique: 1, total: 1)
+
+  - Negocios De Distribucion Y Exportacion S  x1
+
+Cluster 157 (unique: 1, total: 2)
+
+  - Meridian Fishing S.A.C.  x2
+
+Cluster 158 (unique: 1, total: 1)
+
+  - Zapata Chavez Ruperto Enrique  x1
+
+Cluster 159 (unique: 1, total: 1)
+
+  - Pesca K & S Empresa Individual De Respon  x1
+
+Cluster 160 (unique: 1, total: 1)
+
+  - Octoking Export S.A.C.  x1
+
+Cluster 161 (unique: 1, total: 1)
+
+  - Roqinchi Exportaciones E Importaciones S  x1
+
+Cluster 162 (unique: 1, total: 1)
+
+  - Mf Tropical Fish E.I.R.L.  x1
