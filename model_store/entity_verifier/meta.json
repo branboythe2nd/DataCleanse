@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "n_updates": 3,
+  "n_seen_pairs": 321,
+  "threshold_": 0.9999999996111586,
+  "t_low_": 0.9499999996111586,
+  "t_high_": 1.0,
+  "n_features_": 11
+}
