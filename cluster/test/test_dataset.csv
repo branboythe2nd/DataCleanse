@@ -1,0 +1,10 @@
+HSCode,ConsigneeName,ConsigneeFullAddress,ConsigneeLocalDUNS,ConsigneePanjivaID,ConsigneeOriginalFormat,ShipperName,ShipperFullAddress,ShipperPanjivaID,ShipperOriginalFormat,WeightKg
+30461,Virginia Tech,123 University Ave,10001,5001,Virginia Tech 123 University Ave,VT Shippers,1 Shipping Rd,7001,VT Shippers 1 Shipping Rd,2000
+30461,VT,123 University Ave,10001,5001,VT 123 University Ave,VT Shippers,1 Shipping Rd,7001,VT Shippers 1 Shipping Rd,1500
+30461,Virginia Polytechnic,123 University Ave,10001,5001,Virginia Polytechnic 123 University Ave,VT Shippers,1 Shipping Rd,7001,VT Shippers 1 Shipping Rd,1800
+30461,High Liner Foods Inc.,18 Electronics Ave,1110055,27838533,HIGH LINER FOODS INC. 1 HIGH LINER AVENUE,"Seafood Co.,Ltd.",2 Industrial Rd,35036079,"Qingdao Dencan Seafood Co.,LTD",25050
+30461,High Liner Foods,18 Electronics Ave,1110055,27838533,HIGH LINER FOODS INC. 1 HIGH LINER AVENUE,"Seafood Co.,Ltd.",2 Industrial Rd,35036079,"Qingdao Dencan Seafood Co.,LTD",20000
+30461,High Liner Foods Inc.,18 Electronics Ave,1110056,27838534,HIGH LINER FOODS INC. NEW ADDRESS,"Seafood Co.,Ltd.",2 Industrial Rd,35036080,"Qingdao Dencan Seafood Co.,LTD",22000
+30429,Sealand Food Inc.,7418 Ranco Road,185277584,33624817,SEALAND FOODS INC 7418 RANCO ROAD,Zhanjiang Shuanghu Food,No. 2 Industrial Rd,32579395,Zhanjiang Shuanghu Food Co Ltd,22000
+30429,Sealand Foods,7418 Ranco Road,185277584,33624817,SEALAND FOODS INC 7418 RANCO ROAD,Zhanjiang Shuanghu Food,No. 2 Industrial Rd,32579395,Zhanjiang Shuanghu Food Co Ltd,21000
+30429,Sealand Food Inc.,7418 Ranco Road,185277585,33624818,SEALAND FOODS INC 7418 RANCO ROAD,Zhanjiang Shuanghu Food,No. 2 Industrial Rd,32579396,Zhanjiang Shuanghu Food Co Ltd,23000
