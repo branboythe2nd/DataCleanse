@@ -1,0 +1,106 @@
+# Clusters
+
+Total clusters: 13
+
+Cluster 0 (unique: 10, total: 10)
+  - Columbia University  x1
+  - Columbia University in the City of New York  x1
+  - Cornell University  x1
+  - Harvard University  x1
+  - Princeton University  x1
+  - University of California, Berkeley  x1
+  - University of Connecticut  x1
+  - University of Maryland  x1
+  - University of Maryland, College Park  x1
+  - University of Pennsylvania  x1
+
+Cluster 1 (unique: 6, total: 6)
+  - UC Berkeley  x1
+  - UC San Diego  x1
+  - UCSD  x1
+  - University of California, Davis  x1
+  - University of California, San Diego  x1
+  - Virginia Polytechnic Institute and State University  x1
+
+Cluster 2 (unique: 6, total: 6)
+  - Georgia Tech  x1
+  - UCD  x1
+  - UConn  x1
+  - UF  x1
+  - UMD  x1
+  - UVA  x1
+
+Cluster 3 (unique: 5, total: 5)
+  - Carnegie Mellon  x1
+  - Carnegie Mellon University  x1
+  - Cornell  x1
+  - MIT  x1
+  - Princeton  x1
+
+Cluster 4 (unique: 4, total: 4)
+  - Leland Stanford Junior University  x1
+  - Stanford  x1
+  - Stanford University  x1
+  - UCLA  x1
+
+Cluster 5 (unique: 3, total: 3)
+  - Duke  x1
+  - Duke University  x1
+  - Purdue University  x1
+
+Cluster 6 (unique: 3, total: 3)
+  - University of Virginia  x1
+  - Virginia Polytechnic Institute  x1
+  - Virginia Tech  x1
+
+Cluster 7 (unique: 2, total: 2)
+  - Florida  x1
+  - University of Florida  x1
+
+Cluster 8 (unique: 1, total: 1)
+  - University of California, Los Angeles  x1
+
+Cluster 9 (unique: 1, total: 1)
+  - UC Davis  x1
+
+Cluster 10 (unique: 1, total: 1)
+  - GaTech  x1
+
+Cluster 11 (unique: 1, total: 1)
+  - Penn  x1
+
+Cluster 12 (unique: 1, total: 1)
+  - UPenn  x1
+
+Cluster misc (unique: 4, total: 4)
+  - CMU  x1
+  - GT  x1
+  - VPI  x1
+  - VT  x1
+
+Cluster Berkeley (singleton)
+  - Berkeley  x1
+
+Cluster Massachusetts Institute of Technology (singleton)
+  - Massachusetts Institute of Technology  x1
+
+Cluster Maryland (singleton)
+  - Maryland  x1
+
+Cluster Georgia Institute of Technology (singleton)
+  - Georgia Institute of Technology  x1
+
+Cluster VPI&SU (singleton)
+  - VPI&SU  x1
+
+Cluster Purdue (singleton)
+  - Purdue  x1
+
+Cluster Cal (singleton)
+  - Cal  x1
+
+Cluster Columbia (singleton)
+  - Columbia  x1
+
+Cluster Harvard (singleton)
+  - Harvard  x1

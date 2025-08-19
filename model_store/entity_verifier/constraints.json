@@ -1,0 +1,558 @@
+{
+  "must": [
+    [
+      "CMU",
+      "Carnegie Mellon"
+    ],
+    [
+      "CMU",
+      "Carnegie Mellon University"
+    ],
+    [
+      "Carnegie Mellon University",
+      "Carnegie Mellon"
+    ],
+    [
+      "Duke University",
+      "Duke"
+    ],
+    [
+      "Leland Stanford Junior University",
+      "Stanford"
+    ],
+    [
+      "Stanford University",
+      "Leland Stanford Junior University"
+    ],
+    [
+      "Stanford University",
+      "Stanford"
+    ],
+    [
+      "University of Florida",
+      "Florida"
+    ]
+  ],
+  "cannot": [
+    [
+      "Berkeley",
+      "Cornell"
+    ],
+    [
+      "Berkeley",
+      "UC San Diego"
+    ],
+    [
+      "Columbia University",
+      "Carnegie Mellon"
+    ],
+    [
+      "Columbia University",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "Columbia University in the City of New York",
+      "Carnegie Mellon"
+    ],
+    [
+      "Cornell",
+      "Columbia University"
+    ],
+    [
+      "Cornell",
+      "Columbia University in the City of New York"
+    ],
+    [
+      "Cornell",
+      "Harvard"
+    ],
+    [
+      "Georgia Institute of Technology",
+      "UC Berkeley"
+    ],
+    [
+      "Georgia Institute of Technology",
+      "UC San Diego"
+    ],
+    [
+      "Georgia Institute of Technology",
+      "UCSD"
+    ],
+    [
+      "Georgia Institute of Technology",
+      "UVA"
+    ],
+    [
+      "Harvard",
+      "Carnegie Mellon University"
+    ],
+    [
+      "Harvard University",
+      "Carnegie Mellon"
+    ],
+    [
+      "Harvard University",
+      "Cornell"
+    ],
+    [
+      "Harvard University",
+      "MIT"
+    ],
+    [
+      "Harvard University",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "MIT",
+      "Columbia University"
+    ],
+    [
+      "MIT",
+      "Cornell University"
+    ],
+    [
+      "MIT",
+      "Princeton University"
+    ],
+    [
+      "Massachusetts Institute of Technology",
+      "Carnegie Mellon"
+    ],
+    [
+      "Massachusetts Institute of Technology",
+      "Columbia University"
+    ],
+    [
+      "Massachusetts Institute of Technology",
+      "Harvard University"
+    ],
+    [
+      "Massachusetts Institute of Technology",
+      "Princeton University"
+    ],
+    [
+      "Massachusetts Institute of Technology",
+      "UCSD"
+    ],
+    [
+      "Princeton",
+      "Columbia University"
+    ],
+    [
+      "Princeton",
+      "Columbia University in the City of New York"
+    ],
+    [
+      "Princeton",
+      "Cornell University"
+    ],
+    [
+      "Princeton",
+      "Massachusetts Institute of Technology"
+    ],
+    [
+      "Princeton",
+      "UC Davis"
+    ],
+    [
+      "Princeton",
+      "UCLA"
+    ],
+    [
+      "Princeton",
+      "UConn"
+    ],
+    [
+      "Princeton",
+      "UPenn"
+    ],
+    [
+      "Princeton",
+      "University of California, Berkeley"
+    ],
+    [
+      "Princeton",
+      "University of California, San Diego"
+    ],
+    [
+      "Princeton",
+      "University of Connecticut"
+    ],
+    [
+      "Princeton",
+      "University of Maryland"
+    ],
+    [
+      "Princeton",
+      "University of Virginia"
+    ],
+    [
+      "Princeton",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "Princeton University",
+      "Carnegie Mellon"
+    ],
+    [
+      "Princeton University",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "Purdue",
+      "Carnegie Mellon"
+    ],
+    [
+      "Purdue",
+      "Penn"
+    ],
+    [
+      "Purdue",
+      "UMD"
+    ],
+    [
+      "Purdue",
+      "UPenn"
+    ],
+    [
+      "Purdue University",
+      "Columbia University"
+    ],
+    [
+      "Purdue University",
+      "Columbia University in the City of New York"
+    ],
+    [
+      "Purdue University",
+      "Cornell University"
+    ],
+    [
+      "Purdue University",
+      "Harvard University"
+    ],
+    [
+      "Purdue University",
+      "MIT"
+    ],
+    [
+      "Purdue University",
+      "Massachusetts Institute of Technology"
+    ],
+    [
+      "Purdue University",
+      "Princeton"
+    ],
+    [
+      "Purdue University",
+      "Princeton University"
+    ],
+    [
+      "Purdue University",
+      "UC Berkeley"
+    ],
+    [
+      "Purdue University",
+      "UC Davis"
+    ],
+    [
+      "Purdue University",
+      "UC San Diego"
+    ],
+    [
+      "Purdue University",
+      "University of California, Berkeley"
+    ],
+    [
+      "Purdue University",
+      "University of Connecticut"
+    ],
+    [
+      "Purdue University",
+      "University of Maryland"
+    ],
+    [
+      "Purdue University",
+      "University of Maryland, College Park"
+    ],
+    [
+      "Purdue University",
+      "University of Pennsylvania"
+    ],
+    [
+      "Purdue University",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "Purdue University",
+      "Virginia Polytechnic Institute and State University"
+    ],
+    [
+      "Stanford University",
+      "Berkeley"
+    ],
+    [
+      "Stanford University",
+      "Cornell"
+    ],
+    [
+      "Stanford University",
+      "Harvard"
+    ],
+    [
+      "Stanford University",
+      "Princeton"
+    ],
+    [
+      "Stanford University",
+      "Virginia Tech"
+    ],
+    [
+      "UC Davis",
+      "Columbia University"
+    ],
+    [
+      "UC Davis",
+      "Cornell University"
+    ],
+    [
+      "UC Davis",
+      "Harvard University"
+    ],
+    [
+      "UC Davis",
+      "Princeton University"
+    ],
+    [
+      "UC Davis",
+      "UC San Diego"
+    ],
+    [
+      "UC Davis",
+      "UCLA"
+    ],
+    [
+      "UC Davis",
+      "University of Connecticut"
+    ],
+    [
+      "UC Davis",
+      "University of Florida"
+    ],
+    [
+      "UC Davis",
+      "University of Maryland"
+    ],
+    [
+      "UC Davis",
+      "University of Pennsylvania"
+    ],
+    [
+      "UC Davis",
+      "University of Virginia"
+    ],
+    [
+      "UC Davis",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "UCLA",
+      "Cornell"
+    ],
+    [
+      "UCLA",
+      "Duke University"
+    ],
+    [
+      "UCLA",
+      "UCD"
+    ],
+    [
+      "UCLA",
+      "UConn"
+    ],
+    [
+      "UCLA",
+      "UF"
+    ],
+    [
+      "UConn",
+      "Penn"
+    ],
+    [
+      "UMD",
+      "Duke"
+    ],
+    [
+      "UMD",
+      "UPenn"
+    ],
+    [
+      "UPenn",
+      "Duke"
+    ],
+    [
+      "University of California, Berkeley",
+      "Carnegie Mellon"
+    ],
+    [
+      "University of California, Berkeley",
+      "UCSD"
+    ],
+    [
+      "University of California, Berkeley",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of California, Los Angeles",
+      "Florida"
+    ],
+    [
+      "University of California, Los Angeles",
+      "UCSD"
+    ],
+    [
+      "University of California, Los Angeles",
+      "University of California, San Diego"
+    ],
+    [
+      "University of California, Los Angeles",
+      "University of Maryland"
+    ],
+    [
+      "University of California, Los Angeles",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of California, San Diego",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Connecticut",
+      "Carnegie Mellon"
+    ],
+    [
+      "University of Connecticut",
+      "MIT"
+    ],
+    [
+      "University of Connecticut",
+      "UCSD"
+    ],
+    [
+      "University of Connecticut",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Florida",
+      "Columbia"
+    ],
+    [
+      "University of Florida",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Maryland",
+      "Carnegie Mellon"
+    ],
+    [
+      "University of Maryland",
+      "MIT"
+    ],
+    [
+      "University of Maryland",
+      "UCSD"
+    ],
+    [
+      "University of Maryland",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Maryland, College Park",
+      "Carnegie Mellon"
+    ],
+    [
+      "University of Maryland, College Park",
+      "UCSD"
+    ],
+    [
+      "University of Maryland, College Park",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Pennsylvania",
+      "Carnegie Mellon"
+    ],
+    [
+      "University of Pennsylvania",
+      "UC Berkeley"
+    ],
+    [
+      "University of Pennsylvania",
+      "UC San Diego"
+    ],
+    [
+      "University of Pennsylvania",
+      "Virginia Polytechnic Institute"
+    ],
+    [
+      "University of Virginia",
+      "Georgia Tech"
+    ],
+    [
+      "University of Virginia",
+      "UC Berkeley"
+    ],
+    [
+      "University of Virginia",
+      "UC San Diego"
+    ],
+    [
+      "Virginia Polytechnic Institute",
+      "Columbia University in the City of New York"
+    ],
+    [
+      "Virginia Polytechnic Institute",
+      "Cornell University"
+    ],
+    [
+      "Virginia Polytechnic Institute",
+      "Georgia Tech"
+    ],
+    [
+      "Virginia Polytechnic Institute",
+      "University of California, Davis"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "Georgia Tech"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "Harvard University"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "University of California, Berkeley"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "University of Maryland"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "University of Virginia"
+    ],
+    [
+      "Virginia Polytechnic Institute and State University",
+      "Virginia Tech"
+    ],
+    [
+      "Virginia Tech",
+      "Cornell"
+    ],
+    [
+      "Virginia Tech",
+      "Georgia Tech"
+    ]
+  ]
+}
