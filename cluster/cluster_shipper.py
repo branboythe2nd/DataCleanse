@@ -20,12 +20,12 @@ def cluster_names(df, name_col, id_cols):
     grouped = df.groupby(id_cols)
 
     for _, group in grouped:
-        names = group[name_col].dropna().unique().tolist()
+        names = group[name_col].dropna().astype(str).unique().tolist()
         if not names:
             continue
 
         # Count occurrences
-        name_counts = Counter(group[name_col])
+        name_counts = Counter(group[name_col].dropna().astype(str))
 
         # Canonical name = most frequent, tie-breaker = longest
         canonical_name = max(names, key=lambda x: (name_counts[x], len(x)))
@@ -34,10 +34,15 @@ def cluster_names(df, name_col, id_cols):
             "Shipper_ClusterSize": sum(name_counts[name] for name in names),
             "Shipper_NumUniqueNames": len(names),
             "Shipper_CanonicalName": canonical_name,
-            "Shipper_Names": ", ".join(names)
+            "Shipper_Names": ", ".join(sorted(names)),
         })
 
-    return pd.DataFrame(clusters)
+    # Sort by canonical name alphabetically (case-insensitive)
+    return (
+        pd.DataFrame(clusters)
+        .sort_values(by="Shipper_CanonicalName", key=lambda s: s.str.lower(), ascending=True)
+        .reset_index(drop=True)
+    )
 
 def main():
     parser = argparse.ArgumentParser(description="Cluster Shipper names in CSV based on reference IDs")
