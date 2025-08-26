@@ -1,416 +1,260 @@
 #!/usr/bin/env python3
-"""
-Dynamic Entity-Equivalence Clustering (Cluster-Level Feedback + No-Chaining)
----------------------------------------------------------------------------
-- Processes all CSVs in --input-dir; picks the first present column from --columns.
-- Proposes compact initial clusters using a NO-CHAINING merge policy (prevents giant catch-all clusters).
-- Persists a pairwise verifier that keeps learning from your approvals/rejections across runs.
-- Feedback is at the CLUSTER level: a CSV with two columns only: cluster,label
-    * cluster: pipe-separated names, e.g. "MIT | Massachusetts Institute of Technology"
-              (or a JSON list: ["MIT","Massachusetts Institute of Technology"])
-    * label: 1 (approve) or 0 (reject)
-- Approved clusters => must-link constraints + positive training.
-- Rejected clusters => mines worst internal pairs => cannot-link constraints + negative training.
-- Writes one TXT per CSV with clusters and frequencies.
-- Optionally exports review CSVs (cluster,label) to a separate folder.
+# entity_clusterer.py
+# Human-in-the-loop entity-equivalence clustering with automatic helper+acronym merging.
+#
+# Example:
+#   python entity_clusterer.py \
+#     --input_dir ./data \
+#     --output_dir ./out \
+#     --feedback_dir ./feedback \
+#     --name_cols "name,company,supplier,entity" \
+#     --helper_cols "country,zip,domain,email,website,phone,hs_code,vendor_id,tax_id" \
+#     --id_col id
+#
+# Workflow:
+# 1) First run writes proposals: feedback/proposals_round_01.csv
+#    - Review feedback/approvals_round_01.csv (includes readable "items") and mark decision=approve for clusters to freeze.
+# 2) Run again: the script reads approvals, treats approved clusters as *must-link seeds* (they won’t split),
+#    then auto-merges components using helper keys + acronym/initialism rules. You still only approve/disapprove.
+# 3) Repeat until satisfied. Current mapping is out/clusters_latest.csv; state is out/state.json.
+#
+# NOTE: No constraints.csv. Merging happens automatically based on helpers & acronyms.
 
-Install
--------
-pip install pandas numpy scipy scikit-learn sentence-transformers
+import argparse, glob, json, math, os, random, re, sys, hashlib
+from dataclasses import dataclass, asdict, field
+from typing import List, Dict, Tuple, Optional, Iterable
+from collections import defaultdict
 
-Example
--------
-python entity_cluster_clusterfb_nochain.py \
-  --input-dir ./data \
-  --output-dir ./clusters_out \
-  --columns name,company,shipper \
-  --emit-review 100 \
-  --review-dir ./to_label
-"""
-from __future__ import annotations
-
-import argparse
-import json
-import math
-import re
-import unicodedata
-from collections import Counter, defaultdict
-from dataclasses import dataclass, asdict
-from difflib import SequenceMatcher
-from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Set, Tuple
-
-import joblib
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
-from scipy.sparse.csgraph import connected_components  # (unused in no-chaining but kept for fallback)
-from sentence_transformers import SentenceTransformer
+
+# -------- Optional deps handling (embeddings are optional) ----------
+HAVE_SENTENCE = True
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    HAVE_SENTENCE = False
+
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
-from sklearn.metrics import roc_curve
 from sklearn.neighbors import NearestNeighbors
-from sklearn.preprocessing import StandardScaler
+from scipy.sparse import issparse
 
-# ----------------------------- Regex & constants ------------------------------ #
+# RapidFuzz for string similarity (fast & robust)
+HAVE_RAPIDFUZZ = True
+try:
+    from rapidfuzz import fuzz
+except Exception:
+    HAVE_RAPIDFUZZ = False
 
-PUNCT_RE = re.compile(r"[^a-z0-9 ]+")
-MULTISPACE_RE = re.compile(r"\s+")
-ONLY_ALNUM_RE = re.compile(r"^[a-z0-9]+$")
+# ---------------- Normalization helpers -----------------
+PUNCT_RE = re.compile(r"[^\w\s\-/&]")
+MULTI_SPACE = re.compile(r"\s+")
 
-MISC_LABEL = -999_999  # acronym ambiguity bucket
+# Suffixes/abbrev tuned for org names
+CORP_SUFFIXES = {
+    "inc","inc.","llc","l.l.c.","ltd","ltd.","co","co.","corp","corp.","corporation",
+    "company","s.a.","sa","ag","gmbh","pte","plc","bv","oy","oyj","ab","sarl","nv",
+    "kk","aps","as","kft","sro","s.r.o","sp","sp.","sp. z o.o.","sp z oo"
+}
+ABBR = {"intl":"international", "int'l":"international", "univ":"university",
+        "tech":"technology", "mfg":"manufacturing", "dept":"department"}
 
-# ----------------------------- Text helpers ---------------------------------- #
+GENERIC_EMAIL_DOMAINS = {
+    "gmail.com","yahoo.com","outlook.com","hotmail.com","aol.com","icloud.com",
+    "live.com","msn.com","proton.me","protonmail.com","yandex.ru","qq.com","163.com","126.com"
+}
 
-def strip_accents(text: str) -> str:
-    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+def strip_accents(s: str) -> str:
+    try:
+        import unicodedata as ud
+        return ud.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    except Exception:
+        return s
 
-def _preclean(s: str) -> str:
-    # normalize common symbol aliases early
-    return s.replace("&", " and ").replace("+", " and ")
+def canon_header(col: str) -> str:
+    c = col.strip().lower()
+    c = re.sub(r"[^a-z0-9]+", "_", c).strip("_")
+    return c
 
-def tokenize(name: str) -> List[str]:
-    s = strip_accents(str(name).lower().strip())
-    s = _preclean(s)
+def normalize_text(s: str) -> str:
+    if s is None: return ""
+    s = strip_accents(str(s).lower().strip())
     s = PUNCT_RE.sub(" ", s)
-    s = MULTISPACE_RE.sub(" ", s).strip()
-    return [t for t in s.split() if t]
-
-def norm_for_embedding(name: str) -> str:
-    toks = tokenize(name)
-    return " ".join(toks) if toks else strip_accents(str(name).lower())
-
-def tokens_for_acronym(name: str) -> List[str]:
-    return tokenize(name)
-
-def acronym_from_tokens(tokens: Sequence[str]) -> str:
-    return "".join(t[0] for t in tokens if t)
-
-def is_acronym_only(name: str) -> bool:
-    s = strip_accents(_preclean(str(name).lower()))
-    s = PUNCT_RE.sub("", s)
-    return 1 <= len(s) <= 12 and ONLY_ALNUM_RE.match(s) is not None
-
-def acronym_key_for_acronym_only(name: str) -> str:
-    raw = strip_accents(_preclean(name.lower()))
-    key = re.sub(r"[^a-z0-9]", "", raw)
-    key = key.replace("and", "")
-    return key.upper()
-
-# ----------------------------- I/O & counts ---------------------------------- #
-
-def pick_column_for_file(csv_path: Path, candidates: List[str]) -> Optional[str]:
-    try:
-        header = pd.read_csv(csv_path, nrows=0)
-    except Exception:
-        return None
-    cols = set(map(str, header.columns))
-    for c in candidates:
-        if c in cols:
-            return c
-    lower_map = {c.lower(): c for c in cols}
-    for c in candidates:
-        if c.lower() in lower_map:
-            return lower_map[c.lower()]
-    return None
-
-def load_counts(csv_path: Path, column: str, chunksize: int = 200_000) -> Tuple[List[str], Dict[str, Counter]]:
-    counts: Dict[str, Counter] = defaultdict(Counter)
-    for chunk in pd.read_csv(csv_path, usecols=[column], chunksize=chunksize, dtype={column: str}):
-        s = chunk[column].fillna("").astype(str)
-        for name in s:
-            counts[name][name] += 1
-    unique_names = list(counts.keys())
-    return unique_names, counts
-
-# ----------------------------- Vectors & candidates --------------------------- #
-
-def embed_all(names: List[str], model: SentenceTransformer) -> np.ndarray:
-    return model.encode([norm_for_embedding(n) for n in names], normalize_embeddings=True, show_progress_bar=False)
-
-def char_tfidf(names: List[str]) -> csr_matrix:
-    vec = TfidfVectorizer(analyzer="char", ngram_range=(3,5), lowercase=True, min_df=1, norm="l2")
-    return vec.fit_transform([strip_accents(_preclean(n.lower())) for n in names])
-
-def knn_pairs_from_vectors(X, k: int) -> List[Tuple[int,int,float]]:
-    n = X.shape[0]
-    if n <= 1:
-        return []
-    k = max(2, min(k, n))
-    nn = NearestNeighbors(n_neighbors=k, metric="cosine").fit(X)
-    dists, idxs = nn.kneighbors(X, return_distance=True)
-    pairs = []
-    for i in range(n):
-        for r in range(1, k):  # skip self
-            j = idxs[i, r]
-            if i < j:
-                sim = 1.0 - float(dists[i, r])
-                pairs.append((i, j, sim))
-    return pairs
-
-def build_candidate_pairs(names: List[str],
-                          embs: np.ndarray,
-                          Xc: csr_matrix) -> Tuple[
-                              List[Tuple[int,int,float,float]],
-                              Set[Tuple[int,int]]
-                          ]:
-    """
-    Returns:
-      - pairs: (i,j, semantic_cos, char_cos)
-      - acr_pairs: explicit acronym bridges (for info)
-    """
-    n = len(names)
-    k = min(max(10, int(math.sqrt(n)) + 3), n)
-
-    emb_pairs = knn_pairs_from_vectors(embs, k=k)
-    chr_pairs = knn_pairs_from_vectors(Xc,  k=k)
-
-    cand: Dict[Tuple[int,int], List[Optional[float]]] = {}
-    def add_pair(i, j, s_cos=None, s_chr=None):
-        if i > j: i, j = j, i
-        if (i,j) not in cand:
-            cand[(i,j)] = [s_cos, s_chr]
-        else:
-            cur = cand[(i,j)]
-            cand[(i,j)] = [
-                max(cur[0], s_cos) if (cur[0] is not None and s_cos is not None) else (cur[0] if cur[0] is not None else s_cos),
-                max(cur[1], s_chr) if (cur[1] is not None and s_chr is not None) else (cur[1] if cur[1] is not None else s_chr),
-            ]
-
-    for i, j, s in emb_pairs: add_pair(i, j, s_cos=s, s_chr=None)
-    for i, j, s in chr_pairs: add_pair(i, j, s_cos=None, s_chr=s)
-
-    # Acronym-bridging candidates (extra recall)
-    acr_pairs: Set[Tuple[int,int]] = set()
-    acr_only_idx = [i for i, n in enumerate(names) if is_acronym_only(n)]
-    exp_idx = [i for i in range(n) if i not in acr_only_idx]
-    exp_acr: Dict[str, List[int]] = defaultdict(list)
-    for i in exp_idx:
-        acr = acronym_from_tokens(tokens_for_acronym(names[i])).replace("and","")
-        if 1 <= len(acr) <= 12:
-            exp_acr[acr.upper()].append(i)
-    for i in acr_only_idx:
-        key = acronym_key_for_acronym_only(names[i])
-        if key in exp_acr:
-            for j in exp_acr[key]:
-                a, b = (i, j) if i < j else (j, i)
-                acr_pairs.add((a, b))
-                add_pair(a, b, s_cos=None, s_chr=0.0)
-
-    pairs = sorted([(i, j, cand[(i,j)][0] or 0.0, cand[(i,j)][1] or 0.0) for (i,j) in cand])
-    return pairs, acr_pairs
-
-# ----------------------------- Pairwise features ----------------------------- #
-
-def jaccard_all(a: List[str], b: List[str]) -> float:
-    sa, sb = set(a), set(b)
-    if not sa and not sb: return 1.0
-    inter = len(sa & sb); union = len(sa | sb)
-    return inter / union if union else 0.0
-
-def seq_ratio(a: str, b: str) -> float:
-    return SequenceMatcher(None, a, b).ratio()
-
-def pair_features(names: List[str],
-                  embs: np.ndarray,
-                  Xc: csr_matrix,
-                  pairs: List[Tuple[int,int,float,float]]) -> np.ndarray:
-    """
-    0 semantic cosine
-    1 char cosine
-    2 token jaccard (all tokens)
-    3 token overlap count (all tokens)
-    4 exact same acronym (non-empty)
-    5 one acronym equals other's initials
-    6 length ratio
-    7 ordered-token sequence ratio
-    8 raw string sequence ratio
-    9 heuristic: (overlap>=1 and (cos>=.60 or char>=.60))
-    10 explicit acronym bridge (set later)
-    """
-    nfeat = 11
-    feats = np.zeros((len(pairs), nfeat), dtype=float)
-
-    toks = [tokenize(s) for s in names]
-    acrs = [acronym_from_tokens(tokens_for_acronym(s)).upper().replace("AND","") for s in names]
-    normed = [norm_for_embedding(s) for s in names]
-    lens = [len(strip_accents(_preclean(s.lower()))) for s in names]
-
-    for k, (i, j, s_cos, s_chr) in enumerate(pairs):
-        ji = jaccard_all(toks[i], toks[j])
-        ov = len(set(toks[i]) & set(toks[j]))
-
-        ai, aj = acrs[i], acrs[j]
-        acr_equal_nonempty = int(bool(ai) and bool(aj) and (ai == aj))
-        target_j = re.sub(r"[^A-Z0-9]", "", names[j].upper())
-        target_i = re.sub(r"[^A-Z0-9]", "", names[i].upper())
-        acr_one_exact_of_other = int((bool(ai) and (ai == target_j)) or (bool(aj) and (aj == target_i)))
-
-        lr = min(lens[i], lens[j]) / max(lens[i], lens[j]) if max(lens[i], lens[j]) else 0.0
-
-        ti_str = " ".join(sorted(list(set(toks[i]))))
-        tj_str = " ".join(sorted(list(set(toks[j]))))
-        tok_seq = seq_ratio(ti_str, tj_str)
-        raw_seq = seq_ratio(normed[i], normed[j])
-
-        feats[k, :] = [
-            s_cos, s_chr, ji, ov, acr_equal_nonempty, acr_one_exact_of_other,
-            lr, tok_seq, raw_seq,
-            1.0 if (ov >= 1 and (s_cos >= 0.60 or s_chr >= 0.60)) else 0.0,
-            0.0
-        ]
-    return feats
-
-def mark_acronym_bridges(feats: np.ndarray, pairs: List[Tuple[int,int,float,float]], acr_pairs: Set[Tuple[int,int]]) -> None:
-    idx = {(i, j) if i < j else (j, i): k for k, (i, j, _, _) in enumerate(pairs)}
-    for a, b in acr_pairs:
-        t = (a, b) if a < b else (b, a)
-        if t in idx:
-            feats[idx[t], 10] = 1.0
-
-# ----------------------------- Persistent verifier --------------------------- #
-
-@dataclass
-class VerifierMeta:
-    version: int = 1
-    n_updates: int = 0
-    n_seen_pairs: int = 0
-    threshold_: float = 0.5
-    t_low_: float = 0.45
-    t_high_: float = 0.55
-    n_features_: int = 11
-
-class PersistentVerifier:
-    def __init__(self, model_dir: str, n_features: int):
-        self.dir = Path(model_dir)
-        self.dir.mkdir(parents=True, exist_ok=True)
-        self.scaler: Optional[StandardScaler] = None
-        self.clf: Optional[SGDClassifier] = None
-        self.meta = VerifierMeta(n_features_=n_features)
-        self._classes = np.array([0, 1], dtype=int)
-        self._load_or_init(n_features)
-
-    def _load_or_init(self, n_features: int):
-        sc_path = self.dir / "scaler.joblib"
-        clf_path = self.dir / "clf.joblib"
-        meta_path = self.dir / "meta.json"
-        if sc_path.exists() and clf_path.exists() and meta_path.exists():
-            self.scaler = joblib.load(sc_path)
-            self.clf = joblib.load(clf_path)
-            self.meta = VerifierMeta(**json.loads(meta_path.read_text()))
-            if self.meta.n_features_ != n_features:
-                self.scaler = StandardScaler(with_mean=False)
-                self.clf = SGDClassifier(loss="log_loss", alpha=1e-4, max_iter=1000)
-                self.meta = VerifierMeta(n_features_=n_features)
-                self._save_all()
-        else:
-            self.scaler = StandardScaler(with_mean=False)
-            self.clf = SGDClassifier(loss="log_loss", alpha=1e-4, max_iter=1000)
-            self.meta = VerifierMeta(n_features_=n_features)
-            self._save_all()
-
-    def _save_all(self):
-        joblib.dump(self.scaler, self.dir / "scaler.joblib")
-        joblib.dump(self.clf,    self.dir / "clf.joblib")
-        (self.dir / "meta.json").write_text(json.dumps(asdict(self.meta), indent=2))
-
-    def _calibrate_threshold(self, probs: np.ndarray, y_true: np.ndarray) -> float:
-        if len(np.unique(y_true)) < 2:
-            t = 0.5
-        else:
-            fpr, tpr, thr = roc_curve(y_true, probs)
-            j = tpr - fpr
-            t = float(max(0.5, thr[np.argmax(j)]))
-        self.meta.threshold_ = t
-        self.meta.t_low_ = max(0.0, t - 0.05)
-        self.meta.t_high_ = min(1.0, t + 0.05)
-        return t
-
-    def bootstrap_or_update(self, X: np.ndarray, y: np.ndarray, sample_weight: Optional[np.ndarray] = None):
-        self.scaler.partial_fit(X)
-        Xs = self.scaler.transform(X)
-        if sample_weight is None:
-            cls, counts = np.unique(y, return_counts=True)
-            weights = {int(c): (counts.sum() / (len(cls) * cnt)) for c, cnt in zip(cls, counts)}
-            sample_weight = np.array([weights[int(t)] for t in y], dtype=float)
-        self.clf.partial_fit(Xs, y, classes=self._classes, sample_weight=sample_weight)
-        probs = self.clf.predict_proba(Xs)[:, 1]
-        self._calibrate_threshold(probs, y)
-        self.meta.n_updates += 1
-        self.meta.n_seen_pairs += int(X.shape[0])
-        self._save_all()
-
-    def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        Xs = self.scaler.transform(X)
-        return self.clf.predict_proba(Xs)[:, 1]
-
-    def threshold(self) -> float:
-        return self.meta.threshold_
-
-# ----------------------------- Constraints & feedback ------------------------- #
-
-def load_constraints(store_path: Path) -> Dict[str, List[Tuple[str,str]]]:
-    if not store_path.exists():
-        return {"must": [], "cannot": []}
-    try:
-        return json.loads(store_path.read_text())
-    except Exception:
-        return {"must": [], "cannot": []}
-
-def save_constraints(store_path: Path, data: Dict[str, List[Tuple[str,str]]]) -> None:
-    store_path.parent.mkdir(parents=True, exist_ok=True)
-    store_path.write_text(json.dumps(data, indent=2))
-
-def parse_feedback_clusters(feedback_csv: Path) -> List[Tuple[List[str], int]]:
-    """
-    Expected columns (case-insensitive): cluster,label
-    cluster cell can be:
-      - 'name1 | name2 | name3'
-      - JSON list: ["name1","name2",...]
-    Returns list of (names[], label).
-    """
-    df = pd.read_csv(feedback_csv)
-    cols = {c.lower(): c for c in df.columns}
-    if "cluster" not in cols or "label" not in cols:
-        return []
-    C, L = cols["cluster"], cols["label"]
+    s = MULTI_SPACE.sub(" ", s).strip()
+    toks = [t for t in s.split() if t]
     out = []
-    for _, r in df.iterrows():
-        raw = r[C]
-        lab = int(r[L])
-        if pd.isna(raw):
+    for t in toks:
+        if t in CORP_SUFFIXES:  # drop corporate suffixes
             continue
-        if isinstance(raw, str) and raw.strip().startswith("["):
-            try:
-                names = json.loads(raw)
-                names = [str(x) for x in names if str(x).strip()]
-            except Exception:
-                names = [s.strip() for s in str(raw).split("|") if s.strip()]
-        else:
-            names = [s.strip() for s in str(raw).split("|") if s.strip()]
-        if len(names) >= 2:
-            out.append((names, lab))
-    return out
+        out.append(ABBR.get(t, t))
+    return " ".join(out)
 
-def pairs_from_indices(idxs: List[int]) -> List[Tuple[int,int]]:
-    res = []
-    for a in range(len(idxs)):
-        for b in range(a+1, len(idxs)):
-            i, j = idxs[a], idxs[b]
-            if i > j: i, j = j, i
-            res.append((i, j))
-    return res
+def tokenize_for_set(s: str) -> List[str]:
+    s = normalize_text(s)
+    toks = [t for t in s.split() if t and t not in {"and","the","of","for","at","to","in","a","an"}]
+    return sorted(set(toks))
 
-def features_for_index_pairs(names: List[str], embs: np.ndarray, Xc: csr_matrix,
-                             index_pairs: List[Tuple[int,int]]) -> np.ndarray:
-    pairs = [(i, j, 0.0, 0.0) for (i, j) in index_pairs]
-    feats = pair_features(names, embs, Xc, pairs)
-    return feats
+def etld1_from_value(val: str) -> Optional[str]:
+    if not val: return None
+    v = str(val).strip().lower()
+    # extract domain from email/URL
+    if "@" in v:
+        v = v.split("@",1)[1]
+    v = re.sub(r"^https?://", "", v)
+    v = v.split("/")[0]
+    parts = [p for p in v.split(".") if p]
+    if not parts:
+        return None
+    dom = ".".join(parts[-2:]) if len(parts) >= 2 else parts[0]
+    if dom in GENERIC_EMAIL_DOMAINS:
+        return None
+    return dom
 
-# ----------------------------- No-chaining clusterer ------------------------- #
+def norm_phone(val: str) -> Optional[str]:
+    if not val: return None
+    ds = re.sub(r"\D", "", str(val))
+    if len(ds) < 7:
+        return None
+    return ds[-10:]
 
-class UnionFind:
-    def __init__(self, n: int):
+def norm_zip(val: str) -> Optional[str]:
+    if not val: return None
+    s = re.sub(r"[^A-Za-z0-9]", "", str(val)).upper()
+    return s or None
+
+def norm_country(val: str) -> Optional[str]:
+    if not val: return None
+    s = normalize_text(val).upper()
+    return s or None
+
+def norm_taxid(val: str) -> Optional[str]:
+    if not val: return None
+    s = re.sub(r"[^A-Za-z0-9]", "", str(val)).upper()
+    if len(s) < 6:
+        return None
+    return s
+
+def norm_vendorid(val: str) -> Optional[str]:
+    if not val: return None
+    s = re.sub(r"\s+", "", str(val)).upper()
+    if len(s) < 3:
+        return None
+    return s
+
+# ---------------- Similarity primitives -----------------
+def rf_string_similarity(a: str, b: str) -> float:
+    if not HAVE_RAPIDFUZZ:
+        from difflib import SequenceMatcher
+        return SequenceMatcher(None, a, b).ratio()
+    ts = fuzz.token_set_ratio(a, b) / 100.0
+    pr = fuzz.partial_ratio(a, b) / 100.0
+    wr = fuzz.WRatio(a, b) / 100.0
+    return 0.5*ts + 0.2*pr + 0.3*wr
+
+# --- Acronym / initialism helpers ---
+STOP_TOKENS = {"and","the","of","for","at","to","in","a","an"}
+_ACR_CLEAN_RE = re.compile(r"[^A-Za-z]")
+
+def clean_acronym(s: str) -> str:
+    return _ACR_CLEAN_RE.sub("", s or "").upper()
+
+def is_pure_acronym_raw(raw: str) -> bool:
+    if not raw:
+        return False
+    s = clean_acronym(raw)
+    if not (2 <= len(s) <= 12):
+        return False
+    if " " in str(raw).strip():
+        return False
+    letters_only = re.sub(r"[^A-Za-z]", "", str(raw))
+    return letters_only.upper() == s
+
+def initialism_from_norm(norm_name: str) -> str:
+    if not norm_name:
+        return ""
+    toks = [t for t in norm_name.split() if t and t not in STOP_TOKENS and t not in CORP_SUFFIXES]
+    letters = [t[0] for t in toks if t and t[0].isalpha()]
+    return "".join(letters).upper()
+
+_PAREN_PAT = re.compile(r"^(?P<long>.+?)\s*\((?P<acr>[A-Za-z&\.]{2,12})\)\s*$")
+_DASH_PAT  = re.compile(r"^(?P<acr>[A-Za-z&\.]{2,12})\s*[-–—]\s*(?P<long>.+)$")
+
+def build_alias_map(raw_names: List[str], norm_names: List[str]) -> Dict[str, set]:
+    alias = defaultdict(set)
+    for raw, norm in zip(raw_names, norm_names):
+        s = (raw or "").strip()
+        m = _PAREN_PAT.match(s) or _DASH_PAT.match(s)
+        if not m:
+            continue
+        long_raw = m.group("long").strip()
+        acr_raw  = m.group("acr").strip()
+        long_norm = normalize_text(long_raw)
+        acr_clean = clean_acronym(acr_raw)
+        if not long_norm or not acr_clean:
+            continue
+        if acr_clean == initialism_from_norm(long_norm):
+            alias[long_norm].add(acr_clean)
+            alias[acr_clean].add(long_norm)
+    return alias
+
+def is_acronym_of_clean(acr_clean: str, long_norm: str) -> bool:
+    return bool(acr_clean) and acr_clean == initialism_from_norm(long_norm)
+
+# ---------------- Blocking keys -----------------
+def soundex_simple(s: str) -> str:
+    s = re.sub(r"[^a-z]", "", s.split()[0]) if s else ""
+    if not s: return ""
+    first = s[0]
+    mapping = {"bfpv":"1","cgjkqsxz":"2","dt":"3","l":"4","mn":"5","r":"6"}
+    codes = []
+    for ch in s[1:]:
+        code = ""
+        for k,v in mapping.items():
+            if ch in k:
+                code = v
+                break
+        if code and (not codes or codes[-1] != code):
+            codes.append(code)
+        if len(codes) == 3: break
+    return first + "".join(codes).ljust(3,"0")
+
+def block_keys(norm_name: str, init_cap: int = 6) -> Iterable[str]:
+    if not norm_name:
+        return []
+    toks = norm_name.split()
+    keys = set()
+    if toks:
+        keys.add(f"head3:{toks[0][:3]}")
+        keys.add(f"sx:{soundex_simple(norm_name)}")
+    if len(norm_name) >= 3:
+        keys.add(f"tri:{norm_name[:3]}")
+    keys.add(f"len:{len(norm_name)//3}")
+    init = initialism_from_norm(norm_name)
+    if len(init) >= 2:
+        keys.add(f"init:{init[:init_cap]}")
+    return keys
+
+# ---------------- State -----------------
+@dataclass
+class ClusterState:
+    round: int = 1
+    approved_clusters: List[List[str]] = field(default_factory=list)
+    thresholds: List[float] = field(default_factory=list)
+
+def load_state(path: str) -> ClusterState:
+    if os.path.exists(path):
+        with open(path,"r",encoding="utf-8") as f:
+            d = json.load(f)
+        return ClusterState(**d)
+    return ClusterState()
+
+def save_state(path: str, st: ClusterState):
+    with open(path,"w",encoding="utf-8") as f:
+        json.dump(asdict(st), f, indent=2)
+
+# ---------------- DSU -----------------
+class DSU:
+    def __init__(self, n:int):
         self.p = list(range(n))
         self.r = [0]*n
     def find(self, x):
@@ -420,488 +264,869 @@ class UnionFind:
         return x
     def union(self, a, b):
         ra, rb = self.find(a), self.find(b)
-        if ra == rb: return False
-        if self.r[ra] < self.r[rb]: ra, rb = rb, ra
-        self.p[rb] = ra
-        if self.r[ra] == self.r[rb]: self.r[ra] += 1
-        return True
-
-def cluster_no_chaining(
-    n: int,
-    pairs: List[Tuple[int,int,float,float]],
-    probs: np.ndarray,
-    t: float,
-    must_pairs: Set[Tuple[int,int]],
-    cannot_pairs: Set[Tuple[int,int]],
-) -> List[int]:
-    """
-    Build compact clusters by forbidding chaining merges.
-    - Singletons need >=2 supports (or one very strong) into a cluster.
-    - Multi-member merges need cross-density >= 0.60 AND every member has a strong tie.
-    """
-    prob_of = {(min(i,j), max(i,j)): float(probs[k]) for k, (i, j, _, _) in enumerate(pairs)}
-    def p(u,v): return prob_of.get((min(u,v), max(u,v)), 0.0)
-
-    scored = sorted([(float(probs[k]), i, j) for k, (i, j, _, _) in enumerate(pairs)], reverse=True)
-
-    uf = UnionFind(n)
-    members: Dict[int, Set[int]] = {i: {i} for i in range(n)}
-    must = {(min(i,j), max(i,j)) for (i,j) in must_pairs}
-    cannot = {(min(i,j), max(i,j)) for (i,j) in cannot_pairs}
-
-    def root(a): return uf.find(a)
-
-    def blocked(ra: int, rb: int) -> bool:
-        for u in members[ra]:
-            for v in members[rb]:
-                if (min(u,v), max(u,v)) in cannot:
-                    return True
-        return False
-
-    def merge_roots(ra: int, rb: int):
-        if uf.union(ra, rb):
-            nr = root(ra)
-            if nr == ra:
-                members[ra] |= members.pop(rb, set())
-            else:
-                members[rb] |= members.pop(ra, set())
-
-    # 1) Must-links first
-    for (i, j) in sorted(must):
-        ra, rb = root(i), root(j)
-        if ra != rb:
-            merge_roots(ra, rb)
-
-    # 2) Greedy, no-chaining merges
-    DENSITY_MIN = 0.60
-    VERY_STRONG = min(0.95, t + 0.10)
-
-    for prob, i, j in scored:
-        if prob < t: break
-        ra, rb = root(i), root(j)
-        if ra == rb:
-            continue
-        if (min(i,j), max(i,j)) not in must and blocked(ra, rb):
-            continue
-
-        A, B = members[ra], members[rb]
-        # Singleton attach rule
-        if len(A) == 1 or len(B) == 1:
-            if len(A) == 1: u, others = next(iter(A)), B
-            else: u, others = next(iter(B)), A
-            supports = sum(1 for v in others if p(u, v) >= t)
-            maxp = max((p(u, v) for v in others), default=0.0)
-            ok = (supports >= 2) or (maxp >= VERY_STRONG)
-            if ok:
-                merge_roots(ra, rb)
-            continue
-
-        # Multi-member cross support
-        total = len(A) * len(B)
-        supp = 0
-        perA = []
-        for u in A:
-            max_u = 0.0
-            for v in B:
-                puv = p(u, v)
-                if puv >= t: supp += 1
-                if puv > max_u: max_u = puv
-            perA.append(max_u)
-        perB = []
-        for v in B:
-            max_v = 0.0
-            for u in A:
-                puv = p(u, v)
-                if puv > max_v: max_v = puv
-            perB.append(max_v)
-
-        density = (supp / total) if total else 0.0
-        all_have_anchor = (min(perA) >= t) and (min(perB) >= t)
-        if density >= DENSITY_MIN and all_have_anchor:
-            merge_roots(ra, rb)
-
-    # Final labels by root id
-    roots = {i: root(i) for i in range(n)}
-    ridx = {}
-    nextid = 0
-    labels = [-1] * n
-    for i, r in roots.items():
-        if r not in ridx:
-            ridx[r] = nextid
-            nextid += 1
-        labels[i] = ridx[r]
-    return labels
-
-# ----------------------------- Output writers -------------------------------- #
-
-def write_txt(out_path: Path,
-              labels: List[int],
-              names: List[str],
-              counts: Dict[str, Counter],
-              misc_counter: Optional[Counter] = None) -> None:
-    cluster_to_counter: Dict[int, Counter] = defaultdict(Counter)
-    for lab, name in zip(labels, names):
-        if lab >= 0:
-            cluster_to_counter[lab].update(counts.get(name, Counter()))
-    ordered = sorted(cluster_to_counter.items(), key=lambda kv: (-sum(kv[1].values()), kv[0]))
-    id_map = {old: idx for idx, (old, _) in enumerate(ordered)}
-    lines: List[str] = []
-    lines.append("# Clusters\n")
-    lines.append(f"Total clusters: {len(ordered)}\n")
-    for old_cid, counter in ordered:
-        cid = id_map[old_cid]
-        members = sorted(counter.keys(), key=lambda n: (-counter[n], n.lower()))
-        size_u = len(members); size_t = sum(counter.values())
-        lines.append(f"Cluster {cid} (unique: {size_u}, total: {size_t})")
-        for name in members:
-            lines.append(f"  - {name}  x{counter[name]}")
-        lines.append("")
-    if misc_counter and len(misc_counter) > 0:
-        members = sorted(misc_counter.keys(), key=lambda n: (-misc_counter[n], n.lower()))
-        size_u = len(misc_counter); size_t = sum(misc_counter.values())
-        lines.append(f"Cluster misc (unique: {size_u}, total: {size_t})")
-        for name in members:
-            lines.append(f"  - {name}  x{misc_counter[name]}")
-        lines.append("")
-    for lab, name in zip(labels, names):
-        if lab < 0 and lab != MISC_LABEL:
-            cnt = sum(counts.get(name, Counter()).values())
-            lines.append(f"Cluster {name} (singleton)")
-            lines.append(f"  - {name}  x{cnt}")
-            lines.append("")
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text("\n".join(lines), encoding="utf-8")
-
-def write_review_clusters(out_path: Path,
-                          labels: List[int],
-                          names: List[str],
-                          probs_matrix: Optional[np.ndarray],
-                          k: int) -> None:
-    """
-    Export up to k clusters for human approval with just two columns: cluster,label
-    Selection favors low-cohesion or mid-confidence clusters.
-    """
-    if k <= 0:
-        return
-    clusters: Dict[int, List[int]] = defaultdict(list)
-    for i, lab in enumerate(labels):
-        if lab >= 0:
-            clusters[lab].append(i)
-    scored: List[Tuple[float, int]] = []
-    for cid, idxs in clusters.items():
-        if len(idxs) < 2:
-            continue
-        if probs_matrix is not None:
-            sub = probs_matrix[np.ix_(idxs, idxs)]
-            tril = sub[np.tril_indices_from(sub, k=-1)]
-            if tril.size == 0:
-                continue
-            min_p = float(np.min(tril))
-            avg_p = float(np.mean(tril))
-            score = 0.6*(1.0 - min_p) + 0.4*(1.0 - avg_p)  # higher => worse (review first)
+        if ra == rb: return
+        if self.r[ra] < self.r[rb]:
+            self.p[ra] = rb
+        elif self.r[ra] > self.r[rb]:
+            self.p[rb] = ra
         else:
-            score = 0.5
-        scored.append((score, cid))
-    scored.sort(reverse=True)
-    rows = []
-    for _, cid in scored[:k]:
-        idxs = clusters[cid]
-        cluster_names = " | ".join(sorted([names[i] for i in idxs], key=lambda s: s.lower()))
-        rows.append({"cluster": cluster_names, "label": ""})
-    if rows:
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(rows).to_csv(out_path, index=False, encoding="utf-8")
+            self.p[rb] = ra
+            self.r[ra] += 1
 
-# ----------------------------- Acronym post-pass ------------------------------ #
+# ---------------- Feature cache per run -----------------
+class FeatureCache:
+    def __init__(self, names: List[str], df: pd.DataFrame, helper_cols: List[str]):
+        self.names = names
+        self.norm = [normalize_text(n) for n in names]
+        self.tokens = [set(tokenize_for_set(n)) for n in names]
+        self.len_arr = np.array([len(s) for s in self.norm], dtype=float)
 
-def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
-    denom = (np.linalg.norm(a) * np.linalg.norm(b))
-    if denom == 0: return 0.0
-    return float(np.dot(a, b) / denom)
+        # Acronym flags
+        self.acr_clean = [clean_acronym(n) for n in names]
+        self.is_acronym = [is_pure_acronym_raw(n) for n in names]
 
-def compute_centroids(labels: List[int], embs: np.ndarray) -> Dict[int, np.ndarray]:
-    cents: Dict[int, np.ndarray] = {}
-    agg: Dict[int, List[np.ndarray]] = defaultdict(list)
-    for lab, v in zip(labels, embs):
-        if lab >= 0:
-            agg[lab].append(v)
-    for lab, vs in agg.items():
-        cents[lab] = np.mean(np.vstack(vs), axis=0)
-    return cents
+        # Char TF-IDF
+        self.tfv = TfidfVectorizer(analyzer="char", ngram_range=(3,5), lowercase=True, min_df=1, norm="l2")
+        self.Xc = self.tfv.fit_transform(self.norm)
 
-def post_assign_acronyms_strict(names: List[str],
-                                labels: List[int],
-                                counts: Dict[str, Counter],
-                                embs: np.ndarray) -> Tuple[List[int], Counter]:
-    votes: Dict[str, Counter] = defaultdict(Counter)
-    acr_to_clusters: Dict[str, Set[int]] = defaultdict(set)
-    for idx, (lab, name) in enumerate(zip(labels, names)):
-        if lab < 0: continue
-        acr = acronym_from_tokens(tokens_for_acronym(name)).upper().replace("AND","")
-        if 1 <= len(acr) <= 12:
-            votes[acr][lab] += 1
-            acr_to_clusters[acr].add(lab)
+        # Optional sentence embeddings
+        self.embs = None
+        if HAVE_SENTENCE:
+            try:
+                model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+                embs = model.encode(self.norm, normalize_embeddings=True, show_progress_bar=False)
+                self.embs = np.asarray(embs)
+            except Exception:
+                self.embs = None
 
-    cents = compute_centroids(labels, embs)
-    sims_all = []
-    for i, lab in enumerate(labels):
-        if lab < 0: continue
-        cen = cents.get(lab)
-        if cen is None: continue
-        sims_all.append(cosine_sim(embs[i], cen))
-    acr_sim_gate = max(0.50, float(np.percentile(sims_all, 30))) if sims_all else 0.55
+        # Alias map like 'Long (LNG)' / 'LNG - Long'
+        self.alias_map = build_alias_map(self.names, self.norm)
 
-    acr_indices = [i for i, n in enumerate(names) if is_acronym_only(n)]
-    misc = Counter()
-    for i in acr_indices:
-        key = acronym_key_for_acronym_only(names[i])
-        cset = acr_to_clusters.get(key, set())
-        if len(cset) == 1:
-            cid = next(iter(cset))
-            cen = cents.get(cid, None)
-            sim_ok = (cen is not None) and (cosine_sim(embs[i], cen) >= acr_sim_gate)
-            if sim_ok:
-                labels[i] = cid
-                continue
-        if len(cset) > 1 or votes.get(key, Counter()).total() > 0:
-            labels[i] = MISC_LABEL
-            misc.update({names[i]: 1})
-        # else remain singleton
-    return labels, misc
+        # Helper keys per row + buckets for blocking and merging
+        self.helper_keys: List[set] = [set() for _ in range(len(df))]
+        self.helper_buckets: Dict[str, List[int]] = defaultdict(list)
+        self._build_helper_keys(df, helper_cols)
 
-# ----------------------------- Pipeline per file ----------------------------- #
+    def _build_helper_keys(self, df: pd.DataFrame, helper_cols: List[str]):
+        for i in range(len(df)):
+            keys = set()
+            row = df.iloc[i].to_dict()
+            for col in helper_cols:
+                v = row.get(col, None)
+                if v is None or (isinstance(v, str) and not v.strip()): 
+                    continue
+                cl = col.lower()
+                # country (weak key, used in combination)
+                if ("country" in cl) or (cl == "ctry") or ("iso" in cl):
+                    c = norm_country(str(v))
+                    if c:
+                        keys.add(f"ctry:{c}")
+                # domain/email/website/url
+                if ("domain" in cl) or ("email" in cl) or ("website" in cl) or ("url" in cl):
+                    d = etld1_from_value(str(v))
+                    if d:
+                        keys.add(f"dom:{d}")
+                # phone
+                if "phone" in cl or "tel" in cl or "mobile" in cl:
+                    p = norm_phone(str(v))
+                    if p:
+                        keys.add(f"phone:{p}")
+                # zip/postal
+                if "zip" in cl or "postal" in cl or "postcode" in cl:
+                    z = norm_zip(str(v))
+                    if z:
+                        c = None
+                        for cc, vv in row.items():
+                            cc_l = str(cc).lower()
+                            if "country" in cc_l or cc_l == "ctry" or "iso" in cc_l:
+                                c = norm_country(vv); break
+                        if c:
+                            keys.add(f"zip:{c}:{z}")
+                        else:
+                            keys.add(f"zip::{z}")
+                # HS code
+                if "hs" in cl and "code" in cl:
+                    hs = re.sub(r"\D", "", str(v))[:8]
+                    if hs:
+                        keys.add(f"hs:{hs}")
+                # tax id
+                if "tax" in cl or "ein" in cl or "tin" in cl or "vat" in cl or "gst" in cl:
+                    tid = norm_taxid(str(v))
+                    if tid:
+                        keys.add(f"tax:{tid}")
+                # vendor/customer/supplier ids
+                if "vendor" in cl or "supplier" in cl or "customer" in cl or "client" in cl or "partner" in cl or cl.endswith("_id"):
+                    vid = norm_vendorid(str(v))
+                    if vid:
+                        keys.add(f"vid:{vid}")
 
-def process_file(csv_path: Path,
-                 out_dir: Path,
-                 review_dir: Path,
-                 columns: List[str],
-                 verifier: 'PersistentVerifier',
-                 feedback_csv: Optional[Path],
-                 constraints_store: Path,
-                 emit_review: int) -> Optional[Path]:
-    col = pick_column_for_file(csv_path, columns)
-    if not col:
-        print(f"[SKIP] {csv_path.name}: none of the columns present {columns}")
-        return None
+            self.helper_keys[i] = keys
+            for k in keys:
+                self.helper_buckets[k].append(i)
 
-    print(f"[FILE] {csv_path.name} (column: {col})")
-    names, counts = load_counts(csv_path, col)
-    if not names:
-        print("  ! No names found")
-        return None
+# --------------- Candidate generation (blocked, capped) ---------------
+def generate_blocked_slices(cache: FeatureCache, cap:int=5000) -> List[List[int]]:
+    """
+    Buckets:
+      - name-derived keys (soundex, prefixes, initialism)
+      - explicit acronym bucket for pure acronyms
+      - helper-derived keys (domain, phone, country, zip+country, tax/vendor/hs)
+    """
+    buckets = defaultdict(list)
+    for i, norm in enumerate(cache.norm):
+        for k in block_keys(norm):
+            buckets[k].append(i)
+        if cache.is_acronym[i]:
+            buckets[f"acr:{cache.acr_clean[i]}"].append(i)
+        for hk in cache.helper_keys[i]:
+            buckets[hk].append(i)
 
-    enc = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
-    embs = embed_all(names, enc)
-    Xc = char_tfidf(names)
+    seen_hashes = set()
+    slices = []
+    for _, idxs in buckets.items():
+        idxs = sorted(set(idxs))
+        if not idxs:
+            continue
+        if len(idxs) > cap:
+            subb = defaultdict(list)
+            for j in idxs:
+                toks = cache.norm[j].split()
+                subkey = toks[-1][0] if toks else "#"
+                subb[subkey].append(j)
+            for sub in subb.values():
+                h = hashlib.md5((",".join(map(str,sorted(sub)))).encode()).hexdigest()
+                if h not in seen_hashes:
+                    seen_hashes.add(h); slices.append(sorted(sub))
+        else:
+            h = hashlib.md5((",".join(map(str,idxs))).encode()).hexdigest()
+            if h not in seen_hashes:
+                seen_hashes.add(h); slices.append(idxs)
+    return slices
 
-    pairs, acr_pairs = build_candidate_pairs(names, embs, Xc)
-    if not pairs:
-        labels = [-1] * len(names)
-        misc_counter = Counter()
-        out_path = out_dir / (csv_path.stem + ".txt")
-        write_txt(out_path, labels, names, counts, misc_counter)
-        print(f"  ✓ Wrote {out_path}")
-        return out_path
+def knn_pairs_sparse(X, k:int) -> List[Tuple[int,int,float]]:
+    n = X.shape[0]
+    if n <= 1: return []
+    k = max(2, min(k, n))
+    nn = NearestNeighbors(n_neighbors=k, metric="cosine")
+    nn.fit(X)
+    dists, idxs = nn.kneighbors(X, return_distance=True)
+    out = []
+    for i in range(n):
+        for r in range(1, k):
+            j = int(idxs[i, r])
+            if i < j:
+                out.append((i, j, 1.0 - float(dists[i, r])))
+    return out
 
-    feats = pair_features(names, embs, Xc, pairs)
-    mark_acronym_bridges(feats, pairs, acr_pairs)
+def knn_pairs_dense(embs: np.ndarray, k:int) -> List[Tuple[int,int,float]]:
+    n = embs.shape[0]
+    if n <= 1: return []
+    k = max(2, min(k, n))
+    nn = NearestNeighbors(n_neighbors=k, metric="cosine")
+    nn.fit(embs)
+    dists, idxs = nn.kneighbors(embs, return_distance=True)
+    out = []
+    for i in range(n):
+        for r in range(1, k):
+            j = int(idxs[i, r])
+            if i < j:
+                out.append((i, j, 1.0 - float(dists[i, r])))
+    return out
 
-    # Self-seeded pairs
-    pos_idx, neg_idx = [], []
-    for k, (_, _, s_cos, s_chr) in enumerate(pairs):
-        ji = feats[k, 2]; ov = feats[k, 3]
-        acr_equal = bool(feats[k, 4]); acr_initial = bool(feats[k, 5])
-        strong_lex = (ov >= 2 and s_chr >= 0.80) or (ji >= 0.85)
-        if acr_equal or acr_initial or strong_lex:
-            pos_idx.append(k)
-        if ov == 0 and feats[k,0] <= 0.35 and feats[k,1] <= 0.35:
-            neg_idx.append(k)
-    seed_sel = sorted(set(pos_idx[:60]) | set(neg_idx[:60]))
-    X_seeds = feats[seed_sel]
-    y_seeds = np.array([1 if s in pos_idx else 0 for s in seed_sel], dtype=int)
-    w_seeds = np.ones_like(y_seeds, dtype=float)
+# --------------- Pair features & scoring ----------------
+def helper_similarity(irow: dict, jrow: dict, helper_cols: List[str]) -> Tuple[float,int,float]:
+    # Returns (avg_match, count_contributing_cols, max_signal)
+    if not helper_cols: return (0.0, 0, 0.0)
+    hits = []
+    maxsig = 0.0
+    for col in helper_cols:
+        vi, vj = irow.get(col, ""), jrow.get(col, "")
+        if not (isinstance(vi, str) or isinstance(vj, str)):
+            vi, vj = str(vi), str(vj)
+        ni, nj = normalize_text(vi), normalize_text(vj)
+        if not ni or not nj:
+            continue
+        score = 1.0 if ni == nj else 0.0
+        cl = col.lower()
+        # Domain-aware
+        if ("domain" in cl) or ("email" in cl) or ("website" in cl) or ("url" in cl):
+            di, dj = etld1_from_value(vi), etld1_from_value(vj)
+            if di and dj:
+                score = 1.0 if di == dj else 0.0
+        # Phone
+        if ("phone" in cl) or ("tel" in cl) or ("mobile" in cl):
+            pi, pj = norm_phone(vi), norm_phone(vj)
+            if pi and pj:
+                score = 1.0 if pi == pj else 0.0
+        # Zip/postal (weak by itself)
+        if ("zip" in cl) or ("postal" in cl) or ("postcode" in cl):
+            zi, zj = norm_zip(vi), norm_zip(vj)
+            if zi and zj:
+                score = 1.0 if zi == zj else 0.0
+        # Tax IDs
+        if ("tax" in cl) or ("ein" in cl) or ("tin" in cl) or ("vat" in cl) or ("gst" in cl):
+            ti, tj = norm_taxid(vi), norm_taxid(vj)
+            if ti and tj:
+                score = 1.0 if ti == tj else 0.0
+        # Vendor/Customer IDs
+        if ("vendor" in cl) or ("supplier" in cl) or ("customer" in cl) or ("client" in cl) or ("partner" in cl) or cl.endswith("_id"):
+            vi2, vj2 = norm_vendorid(vi), norm_vendorid(vj)
+            if vi2 and vj2:
+                score = 1.0 if vi2 == vj2 else 0.0
+        # Country (weak by itself)
+        if ("country" in cl) or (cl == "ctry") or ("iso" in cl):
+            ci, cj = norm_country(vi), norm_country(vj)
+            if ci and cj:
+                score = 1.0 if ci == cj else 0.0
 
-    # Constraints store
-    constraints_path = constraints_store
-    stored = load_constraints(constraints_path)
-    must_pairs_str = set(map(tuple, stored.get("must", [])))
-    cannot_pairs_str = set(map(tuple, stored.get("cannot", [])))
-    idx_by_name = {n: i for i, n in enumerate(names)}
-    def map_pairs(pair_strs: Set[Tuple[str,str]]) -> Set[Tuple[int,int]]:
-        out = set()
-        for a, b in pair_strs:
-            if a in idx_by_name and b in idx_by_name:
-                i, j = idx_by_name[a], idx_by_name[b]
-                out.add((i, j) if i < j else (j, i))
-        return out
-    must_pairs_idx = map_pairs(must_pairs_str)
-    cannot_pairs_idx = map_pairs(cannot_pairs_str)
+        hits.append(score)
+        maxsig = max(maxsig, score)
+    if not hits: return (0.0, 0, 0.0)
+    return (float(sum(hits)/len(hits)), len(hits), maxsig)
 
-    # ---- Cluster-level feedback ingestion ----
-    fb_pairs_pos: List[Tuple[int,int]] = []
-    fb_pairs_neg: List[Tuple[int,int]] = []
-    if feedback_csv is not None and feedback_csv.exists():
-        fb_clusters = parse_feedback_clusters(feedback_csv)
-        # quick warm model to score pairs for negative mining
-        ver_warm = PersistentVerifier(model_dir=str(Path(verifier.dir)/"_warm"), n_features=feats.shape[1])
-        ver_warm.bootstrap_or_update(X_seeds, y_seeds, sample_weight=w_seeds)
-        warm_probs = ver_warm.predict_proba(feats)
-        idx_map = {(min(i,j), max(i,j)): k for k, (i, j, _, _) in enumerate(pairs)}
+def acronym_similarity(a_norm: str, b_norm: str,
+                       a_is_acr: bool, b_is_acr: bool,
+                       a_acr_clean: str, b_acr_clean: str,
+                       alias_map: Dict[str, set]) -> float:
+    # Strong if exactly acronym <-> longform
+    if a_is_acr and not b_is_acr and is_acronym_of_clean(a_acr_clean, b_norm):
+        return 1.0
+    if b_is_acr and not a_is_acr and is_acronym_of_clean(b_acr_clean, a_norm):
+        return 1.0
+    # Learned aliases
+    if (a_norm in alias_map and b_norm in alias_map[a_norm]) or \
+       (b_norm in alias_map and a_norm in alias_map[b_norm]):
+        if (a_is_acr and not b_is_acr) or (b_is_acr and not a_is_acr):
+            return 1.0
+    # Weak: same initialism, ONLY when neither side is a pure acronym
+    if not a_is_acr and not b_is_acr:
+        ia = initialism_from_norm(a_norm); ib = initialism_from_norm(b_norm)
+        if ia and ib and ia == ib and len(ia) >= 2:
+            return 0.6
+    return 0.0
 
-        for names_list, lab in fb_clusters:
-            idxs_present = [idx_by_name[n] for n in names_list if n in idx_by_name]
-            if len(idxs_present) < 2:
-                continue
-            ipairs = pairs_from_indices(sorted(set(idxs_present)))
-            if lab == 1:
-                fb_pairs_pos.extend(ipairs)
-                for (i, j) in ipairs:
-                    must_pairs_str.add((names[i], names[j]))
-            else:
-                pair_probs = []
-                for (i, j) in ipairs:
-                    key = (min(i,j), max(i,j))
-                    if key in idx_map:
-                        p = warm_probs[idx_map[key]]
-                    else:
-                        f = features_for_index_pairs(names, embs, Xc, [(i, j)])
-                        p = float(ver_warm.predict_proba(f)[0])
-                    pair_probs.append(((i, j), p))
-                pair_probs.sort(key=lambda x: x[1])
-                m = max(1, int(math.ceil(0.2 * len(pair_probs))))
-                worst = [ij for (ij, _) in pair_probs[:m]]
-                fb_pairs_neg.extend(worst)
-                for (i, j) in worst:
-                    cannot_pairs_str.add((names[i], names[j]))
+def pair_features(i:int, j:int, cache: FeatureCache, df: pd.DataFrame, helper_cols: List[str]) -> np.ndarray:
+    # 8D feature vector
+    ni, nj = cache.norm[i], cache.norm[j]
+    rf = rf_string_similarity(ni, nj)
 
-        stored["must"] = sorted(list(must_pairs_str))
-        stored["cannot"] = sorted(list(cannot_pairs_str))
-        save_constraints(constraints_path, stored)
+    si, sj = cache.tokens[i], cache.tokens[j]
+    jacc = (len(si & sj) / len(si | sj)) if (si or sj) else 1.0
+    overlap = float(len(si & sj))
 
-        must_pairs_idx = map_pairs(must_pairs_str)
-        cannot_pairs_idx = map_pairs(cannot_pairs_str)
+    chr_cos = 0.0
+    Xi, Xj = cache.Xc[i], cache.Xc[j]
+    if issparse(Xi) and issparse(Xj):
+        chr_cos = float(Xi.multiply(Xj).sum())
 
-    # Build training set: seeds + feedback-derived
-    def feats_for_pairs(pair_list: List[Tuple[int,int]]) -> np.ndarray:
-        if not pair_list: return np.empty((0, feats.shape[1]))
-        return features_for_index_pairs(names, embs, Xc, pair_list)
+    emb_cos = 0.0
+    if cache.embs is not None:
+        vi, vj = cache.embs[i], cache.embs[j]
+        emb_cos = float(np.clip(np.dot(vi, vj), -1.0, 1.0))
 
-    X_fb_pos = feats_for_pairs(fb_pairs_pos)
-    y_fb_pos = np.ones((X_fb_pos.shape[0],), dtype=int)
-    X_fb_neg = feats_for_pairs(fb_pairs_neg)
-    y_fb_neg = np.zeros((X_fb_neg.shape[0],), dtype=int)
+    hi, cols, hmax = helper_similarity(df.iloc[i].to_dict(), df.iloc[j].to_dict(), helper_cols)
+    lr = (min(cache.len_arr[i], cache.len_arr[j]) / max(cache.len_arr[i], cache.len_arr[j])) if max(cache.len_arr[i], cache.len_arr[j]) else 0.0
 
-    X_train = np.vstack([X_seeds, X_fb_pos, X_fb_neg]) if (X_fb_pos.size or X_fb_neg.size) else X_seeds
-    y_train = np.concatenate([y_seeds, y_fb_pos, y_fb_neg]) if (X_fb_pos.size or X_fb_neg.size) else y_seeds
-    w_train = np.concatenate([w_seeds,
-                              np.full_like(y_fb_pos, 4.0, dtype=float),
-                              np.full_like(y_fb_neg, 4.0, dtype=float)]) if (X_fb_pos.size or X_fb_neg.size) else w_seeds
-
-    verifier.bootstrap_or_update(X_train, y_train, sample_weight=w_train)
-    probs = verifier.predict_proba(feats)
-    t = verifier.threshold()
-
-    # --- No-chaining clustering (prevents giant cluster 0) ---
-    labels = cluster_no_chaining(
-        n=len(names),
-        pairs=pairs,
-        probs=probs,
-        t=t,
-        must_pairs=must_pairs_idx,
-        cannot_pairs=cannot_pairs_idx,
+    acr = acronym_similarity(
+        ni, nj,
+        cache.is_acronym[i], cache.is_acronym[j],
+        cache.acr_clean[i], cache.acr_clean[j],
+        cache.alias_map
     )
 
-    # Purify by centroid similarity (protect must-linked nodes)
-    cents = compute_centroids(labels, embs)
-    cluster_members: Dict[int, List[int]] = defaultdict(list)
-    for i, lab in enumerate(labels):
-        if lab >= 0:
-            cluster_members[lab].append(i)
-    sims_all = []
-    for lab, idxs in cluster_members.items():
-        cen = cents.get(lab); 
-        if cen is None: continue
-        for i in idxs:
-            sims_all.append(cosine_sim(embs[i], cen))
-    sim_gate = max(0.45, float(np.percentile(sims_all, 20))) if sims_all else 0.5
+    return np.array([rf, chr_cos, emb_cos, jacc, overlap, hi, lr, acr], dtype=float)
 
-    must_nodes = set([u for (u,v) in must_pairs_idx] + [v for (u,v) in must_pairs_idx])
-    new_labels = labels[:]
-    for lab, idxs in cluster_members.items():
-        cen = cents.get(lab)
-        for i in idxs:
-            if i in must_nodes:
-                continue
-            sim_ok = (cen is not None) and (cosine_sim(embs[i], cen) >= sim_gate)
-            if not sim_ok:
-                new_labels[i] = -1
-    labels = new_labels
+def blend_score(feat: np.ndarray) -> float:
+    # [rf, chr, emb, jacc, overlap, helper, len_ratio, acr]
+    rf, chr_, emb, jacc, ov, h, lr, acr = feat
+    w_rf, w_chr, w_emb, w_jac, w_ov, w_h, w_lr, w_acr = 0.33, 0.21, 0.10, 0.08, 0.02, 0.16, 0.02, 0.08
+    synergy = 0.04 if (acr >= 0.99 and h >= 0.5) else 0.0
+    s = (w_rf*rf + w_chr*chr_ + w_emb*emb + w_jac*jacc +
+         w_ov*min(ov/5.0, 1.0) + w_h*h + w_lr*lr + w_acr*acr + synergy)
+    return float(max(0.0, min(1.0, s)))
 
-    # Acronym post-pass
-    labels, misc_counter = post_assign_acronyms_strict(names, labels, counts, embs)
+# --------------- Helper-driven acronym pairs ---------------
+def helper_pairs_for_acronyms(cache: FeatureCache, strong_only: bool = True, bucket_cap:int=1000) -> List[Tuple[int,int]]:
+    strong_prefixes = ("dom:", "phone:", "tax:", "vid:")
+    pairs = set()
+    for key, idxs in cache.helper_buckets.items():
+        if strong_only and not key.startswith(strong_prefixes):
+            continue
+        if len(idxs) < 2 or len(idxs) > bucket_cap:
+            continue
+        has_acr = any(cache.is_acronym[i] for i in idxs)
+        has_long = any(not cache.is_acronym[i] for i in idxs)
+        if not (has_acr and has_long):
+            continue
+        acrs = [i for i in idxs if cache.is_acronym[i]]
+        longs = [i for i in idxs if not cache.is_acronym[i]]
+        for i in acrs:
+            for j in longs:
+                a, b = (i, j) if i < j else (j, i)
+                pairs.add((a, b))
+    return sorted(pairs)
 
-    # TXT output
-    out_path = out_dir / (csv_path.stem + ".txt")
-    write_txt(out_path, labels, names, counts, misc_counter)
-    print(f"  ✓ Wrote {out_path}")
+# --------------- Threshold calibration ------------------
+def sample_likely_negatives(df: pd.DataFrame, rid_col: str, helper_cols: List[str], max_pairs:int=20000) -> List[Tuple[int,int]]:
+    idxs = list(range(len(df)))
+    if len(idxs) < 2:
+        return []
+    country_col = None
+    domain_col = None
+    for c in helper_cols:
+        cl = c.lower()
+        if country_col is None and ("country" in cl or cl == "ctry" or "iso" in cl):
+            country_col = c
+        if domain_col is None and ("domain" in cl or "email" in cl or "website" in cl or "url" in cl):
+            domain_col = c
+    pairs = set()
+    trials = 0
+    while len(pairs) < max_pairs and trials < max_pairs*5:
+        i, j = random.sample(idxs, 2)
+        if i > j: i, j = j, i
+        ok = False
+        if country_col:
+            ci, cj = str(df.iloc[i].get(country_col, "")), str(df.iloc[j].get(country_col, ""))
+            if ci and cj and normalize_text(ci) != normalize_text(cj): ok = True
+        if (not ok) and domain_col:
+            di = etld1_from_value(str(df.iloc[i].get(domain_col,"")))
+            dj = etld1_from_value(str(df.iloc[j].get(domain_col,"")))
+            if di and dj and di != dj: ok = True
+        if ok:
+            pairs.add((i,j))
+        trials += 1
+    return list(pairs)
 
-    # Review CSV (cluster,label only)
-    if emit_review > 0:
-        N = len(names)
-        prob_mat = np.eye(N)
-        idx_map = {(min(i,j), max(i,j)): k for k, (i, j, _, _) in enumerate(pairs)}
-        for (i, j), k in idx_map.items():
-            prob_mat[i, j] = prob_mat[j, i] = probs[k]
-        review_path = review_dir / f"{csv_path.stem}_review_clusters.csv"
-        write_review_clusters(review_path, labels, names, prob_mat, emit_review)
-        print(f"  • Review clusters -> {review_path}")
+def calibrate_threshold_from_scores(scores_all: List[float], neg_scores: List[float]) -> List[float]:
+    if not scores_all:
+        return [0.70, 0.80, 0.90]
+    if neg_scores:
+        q97 = float(np.quantile(np.array(neg_scores), 0.97))
+        t0 = max(0.55, min(0.88, q97))
+    else:
+        t0 = float(np.quantile(np.array(scores_all), 0.75))
+        t0 = max(0.55, min(0.88, t0))
+    t1 = min(0.95, t0 + 0.08)
+    t2 = min(0.99, t0 + 0.15)
+    thrs = sorted(set(round(x,3) for x in [t0,t1,t2] if 0.5 <= x <= 0.99))
+    return thrs or [0.70, 0.80, 0.90]
 
-    return out_path
+# --------------- Build clusters + strong auto-merge ----------------
+def build_clusters_from_pairs(
+    idxs: List[int],
+    pairs: List[Tuple[int,int,float]],
+    threshold: float,
+    must_groups_idx: List[List[int]],
+    rid_list: List[str],
+    cache: "FeatureCache",
+    df: pd.DataFrame,
+    helper_cols: List[str],
+    auto_merge: bool = True
+) -> List[List[int]]:
+    """
+    Build components at 'threshold', enforce approved must-link groups,
+    then iteratively auto-merge components using helper+acronym+score rules.
+    """
+    # ---------- Base graph ----------
+    idxs_set = set(idxs)
+    adj = defaultdict(set)
+    score_map: Dict[Tuple[int,int], float] = {}
+    for i, j, s in pairs:
+        a, b = (i, j) if i < j else (j, i)
+        score_map[(a, b)] = max(score_map.get((a, b), 0.0), s)
+        if s >= threshold and (i in idxs_set) and (j in idxs_set):
+            adj[i].add(j); adj[j].add(i)
 
-# ----------------------------------- Main ------------------------------------ #
+    # Must-link seeds: link all records inside each approved cluster (no split)
+    for group in must_groups_idx:
+        g = [i for i in group if i in idxs_set]
+        for a in range(len(g)):
+            for b in range(a+1, len(g)):
+                ia, ib = g[a], g[b]
+                adj[ia].add(ib); adj[ib].add(ia)
 
+    # Connected components
+    def connected_components() -> List[List[int]]:
+        seen = set()
+        comps: List[List[int]] = []
+        for start in sorted(idxs_set):
+            if start in seen: continue
+            stack = [start]; seen.add(start); comp = [start]
+            while stack:
+                u = stack.pop()
+                for v in adj.get(u, []):
+                    if v not in seen:
+                        seen.add(v); stack.append(v); comp.append(v)
+            comps.append(sorted(comp))
+        return comps
+
+    comps = connected_components()
+    if not auto_merge or len(comps) <= 1:
+        return comps
+
+    # ---------- Precompute per-component summaries ----------
+    STRONG_PREFIXES = ("dom:", "phone:", "tax:", "vid:")
+    WEAK_COUNTRY = "ctry:"
+    SCORE_FOR_INIT_COUNTRY = 0.85  # high cross score for init+country merges
+
+    def comp_helper_keys(comp: List[int]) -> Tuple[set, set]:
+        strong, country = set(), set()
+        for i in comp:
+            for hk in cache.helper_keys[i]:
+                if hk.startswith(STRONG_PREFIXES):
+                    strong.add(hk)
+                if hk.startswith(WEAK_COUNTRY):
+                    country.add(hk)
+        return strong, country
+
+    def comp_initialisms(comp: List[int]) -> set:
+        inits = set()
+        for i in comp:
+            if not cache.is_acronym[i]:
+                init = initialism_from_norm(cache.norm[i])
+                if len(init) >= 2:
+                    inits.add(init)
+        return inits
+
+    def comp_acronyms(comp: List[int]) -> set:
+        return {cache.acr_clean[i] for i in comp if cache.is_acronym[i] and cache.acr_clean[i]}
+
+    def any_acronym_bridge(A: List[int], B: List[int]) -> bool:
+        # Is there an acronym<->longform pair with some helper agreement?
+        for i in A:
+            for j in B:
+                if cache.is_acronym[i] and (not cache.is_acronym[j]):
+                    acr = is_acronym_of_clean(cache.acr_clean[i], cache.norm[j]) or \
+                          (cache.norm[j] in cache.alias_map and cache.acr_clean[i] in cache.alias_map[cache.norm[j]])
+                    if acr:
+                        hi, _, hmax = helper_similarity(df.iloc[i].to_dict(), df.iloc[j].to_dict(), helper_cols)
+                        if (hmax >= 0.5) or (hi >= 0.5):
+                            return True
+                if cache.is_acronym[j] and (not cache.is_acronym[i]):
+                    acr = is_acronym_of_clean(cache.acr_clean[j], cache.norm[i]) or \
+                          (cache.norm[i] in cache.alias_map and cache.acr_clean[j] in cache.alias_map[cache.norm[i]])
+                    if acr:
+                        hi, _, hmax = helper_similarity(df.iloc[i].to_dict(), df.iloc[j].to_dict(), helper_cols)
+                        if (hmax >= 0.5) or (hi >= 0.5):
+                            return True
+        return False
+
+    def max_cross_score(A: List[int], B: List[int]) -> float:
+        best = 0.0
+        for i in A:
+            for j in B:
+                a, b = (i, j) if i < j else (j, i)
+                s = score_map.get((a, b), 0.0)
+                if s > best:
+                    best = s
+        return best
+
+    # ---------- Iterative merging ----------
+    changed = True
+    while changed:
+        changed = False
+        m = len(comps)
+        if m <= 1: break
+
+        comp_strong = []
+        comp_country = []
+        comp_inits = []
+        comp_acrs = []
+        for comp in comps:
+            sset, cset = comp_helper_keys(comp)
+            comp_strong.append(sset)
+            comp_country.append(cset)
+            comp_inits.append(comp_initialisms(comp))
+            comp_acrs.append(comp_acronyms(comp))
+
+        dsu = DSU(m)
+
+        # Rule 1: share any STRONG helper key -> merge
+        key2c = defaultdict(list)
+        for cid, sset in enumerate(comp_strong):
+            for k in sset:
+                key2c[k].append(cid)
+        for k, cids in key2c.items():
+            base = cids[0]
+            for cid in cids[1:]:
+                dsu.union(base, cid)
+
+        # Rule 2: acronym bridge + any helper hit between comps -> merge
+        for x in range(m):
+            for y in range(x+1, m):
+                if dsu.find(x) == dsu.find(y): continue
+                A, B = comps[x], comps[y]
+                if any_acronym_bridge(A, B):
+                    dsu.union(x, y)
+
+        # Rule 3: same initialism + same country + high cross score -> merge
+        for x in range(m):
+            for y in range(x+1, m):
+                if dsu.find(x) == dsu.find(y): continue
+                if not (comp_inits[x] and comp_inits[y]): 
+                    continue
+                if not (comp_country[x] & comp_country[y]):
+                    continue
+                if comp_inits[x] & comp_inits[y]:
+                    if max_cross_score(comps[x], comps[y]) >= SCORE_FOR_INIT_COUNTRY:
+                        dsu.union(x, y)
+
+        # Rule 4: small cluster absorption if shares STRONG with a larger one
+        sizes = [len(c) for c in comps]
+        for x in range(m):
+            for y in range(x+1, m):
+                rx, ry = dsu.find(x), dsu.find(y)
+                if rx == ry: 
+                    continue
+                if not (sizes[x] <= 2 or sizes[y] <= 2):
+                    continue
+                if comp_strong[x] & comp_strong[y]:
+                    dsu.union(x, y)
+
+        # Rebuild comps from DSU
+        new_groups = defaultdict(list)
+        for cid in range(m):
+            new_groups[dsu.find(cid)].extend(comps[cid])
+        new_comps = [sorted(set(v)) for v in new_groups.values()]
+        if len(new_comps) != len(comps) or any(set(a) != set(b) for a, b in zip(sorted(comps), sorted(new_comps))):
+            comps = new_comps
+            changed = True
+
+    return comps
+
+# --------------- IO: data loading & feedback ---------------
+def load_all_csvs(input_dir: str, name_cols: List[str], helper_cols: List[str]) -> pd.DataFrame:
+    """Load only CSVs that contain at least one requested NAME column (case-insensitive)."""
+    req_names   = {canon_header(c) for c in name_cols}
+
+    paths = sorted(glob.glob(os.path.join(input_dir, "*.csv")))
+    frames, skipped = [], []
+
+    for p in paths:
+        try:
+            df = pd.read_csv(p, dtype=str, keep_default_na=False, na_values=[""])
+        except Exception:
+            df = pd.read_csv(p, low_memory=False)
+        cols = {canon_header(c) for c in df.columns}
+        has_name = bool(cols & req_names)
+        if not has_name:
+            skipped.append(os.path.basename(p))
+            continue
+        df["_source_file"] = os.path.basename(p)
+        frames.append(df)
+
+    if skipped:
+        print(f"Skipping {len(skipped)} file(s) with no requested name columns: {skipped}")
+
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True)
+
+def pick_name_value(row: pd.Series, name_cols: List[str]) -> str:
+    for c in name_cols:
+        if c in row and str(row[c]).strip():
+            return str(row[c]).strip()
+    return ""
+
+def ensure_columns(df: pd.DataFrame, cols: List[str]):
+    for c in cols:
+        if c not in df.columns:
+            df[c] = ""
+
+def read_feedback_approvals(feedback_dir: str, round_num:int) -> Dict[str,str]:
+    path = os.path.join(feedback_dir, f"approvals_round_{round_num:02d}.csv")
+    if not os.path.exists(path):
+        return {}
+    out = {}
+    try:
+        adf = pd.read_csv(path, dtype=str)
+        for _, r in adf.iterrows():
+            cid = str(r.get("cluster_id","")).strip()
+            dec = str(r.get("decision","")).strip().lower()
+            if cid:
+                out[cid] = dec
+    except Exception:
+        pass
+    return out
+
+def write_proposals(feedback_dir: str, round_num:int, review_clusters: List[List[int]],
+                    df: pd.DataFrame, rid_col:str, name_col:str,
+                    scores_by_pair: Dict[Tuple[int,int], float]):
+    # 1) Member-level proposals (rows only for clusters needing review)
+    rows = []
+    for k, comp in enumerate(review_clusters, 1):
+        # cohesion (avg pair score inside comp, if available)
+        if len(comp) <= 1:
+            coh = 1.0
+        else:
+            acc = 0.0; cnt = 0
+            for i in range(len(comp)):
+                for j in range(i+1, len(comp)):
+                    a, b = comp[i], comp[j]
+                    key = (a,b) if a<b else (b,a)
+                    if key in scores_by_pair:
+                        acc += scores_by_pair[key]; cnt += 1
+            coh = (acc / cnt) if cnt else 0.0
+
+        cluster_id = f"R{round_num}_C{k}"
+        for idx in comp:
+            rows.append({
+                "cluster_id": cluster_id,
+                "rid": str(df.iloc[idx][rid_col]),
+                "name": df.iloc[idx][name_col],
+                "source": df.iloc[idx]["_source_file"],
+                "cohesion_estimate": round(coh, 3)
+            })
+
+    out = pd.DataFrame(rows)
+    prop_path = os.path.join(feedback_dir, f"proposals_round_{round_num:02d}.csv")
+    out.to_csv(prop_path, index=False)
+
+    # 2) Approvals file (one row per review cluster) with "items"
+    ap_path = os.path.join(feedback_dir, f"approvals_round_{round_num:02d}.csv")
+
+    def _item_label(rid_val, name_val):
+        if is_pure_acronym_raw(name_val):
+            return f"{rid_val} — {name_val}"
+        init = initialism_from_norm(normalize_text(name_val))
+        if init and clean_acronym(name_val) != init:
+            return f"{rid_val} — {name_val} [{init}]"
+        return f"{rid_val} — {name_val}"
+
+    ap_rows = []
+    for cid, sub in out.groupby("cluster_id", sort=True):
+        size = int(len(sub))
+        coh = float(sub["cohesion_estimate"].iloc[0]) if "cohesion_estimate" in sub else 0.0
+        items_str = " | ".join(_item_label(r, n) for r, n in zip(sub["rid"], sub["name"]))
+        ap_rows.append({
+            "cluster_id": cid,
+            "size": size,
+            "cohesion": round(coh, 3),
+            "items": items_str,
+            "decision": ""  # preserve below if the file already exists
+        })
+    ap_new = pd.DataFrame(ap_rows, columns=["cluster_id","size","cohesion","items","decision"])
+
+    if os.path.exists(ap_path):
+        try:
+            ap_old = pd.read_csv(ap_path, dtype=str)
+            if "cluster_id" in ap_old.columns:
+                old_dec = dict(zip(ap_old["cluster_id"].astype(str),
+                                   ap_old["decision"] if "decision" in ap_old.columns else [""]*len(ap_old)))
+                ap_new["decision"] = ap_new["cluster_id"].map(old_dec).fillna("")
+        except Exception:
+            pass
+
+    ap_new.to_csv(ap_path, index=False)
+
+# --------------- Main pipeline -----------------
 def main():
-    ap = argparse.ArgumentParser(description="Dynamic clustering with cluster-level feedback (no-chaining initial merge)")
-    ap.add_argument("--input-dir", required=True, help="Directory with CSV files")
-    ap.add_argument("--output-dir", required=True, help="Directory to write TXT files")
-    ap.add_argument("--columns", required=True, help="Comma-separated list of column names to scan per CSV")
-    ap.add_argument("--feedback", default=None, help="CSV of cluster-level labels (columns: cluster,label)")
-    ap.add_argument("--emit-review", type=int, default=0, help="How many clusters to export for labeling (0=off)")
-    ap.add_argument("--review-dir", default=None, help="Directory to write review CSVs (defaults to --output-dir)")
-    ap.add_argument("--model-dir", default="./model_store/entity_verifier", help="Directory for persistent verifier")
-    ap.add_argument("--constraints-dir", default=None, help="Path to constraints.json (defaults to <model-dir>/constraints.json)")
+    ap = argparse.ArgumentParser(description="Entity equivalence clustering with human approvals only (auto-merge enabled)")
+    ap.add_argument("--input_dir", required=True)
+    ap.add_argument("--output_dir", required=True)
+    ap.add_argument("--feedback_dir", required=True)
+    ap.add_argument("--name_cols", required=True, help="Comma-separated columns that define the entity string (first non-empty wins)")
+    ap.add_argument("--helper_cols", default="", help="Comma-separated helper columns (e.g., country,zip,domain,email,website,phone,hs_code,vendor_id,tax_id)")
+    ap.add_argument("--id_col", default="", help="Optional unique id column; if absent, a synthetic rid is created")
     args = ap.parse_args()
 
-    in_dir = Path(args.input_dir)
-    out_dir = Path(args.output_dir)
-    review_dir = Path(args.review_dir) if args.review_dir else out_dir
-    columns = [c.strip() for c in args.columns.split(",") if c.strip()]
-    feedback_csv = Path(args.feedback) if args.feedback else None
+    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.feedback_dir, exist_ok=True)
+    state_path = os.path.join(args.output_dir, "state.json")
+    st = load_state(state_path)
 
-    if not in_dir.is_dir():
-        raise SystemExit(f"--input-dir not found or not a directory: {in_dir}")
-    out_dir.mkdir(parents=True, exist_ok=True)
-    review_dir.mkdir(parents=True, exist_ok=True)
+    # Parse column params early (for loader)
+    name_cols = [c.strip() for c in args.name_cols.split(",") if c.strip()]
+    helper_cols = [c.strip() for c in args.helper_cols.split(",") if c.strip()]
 
-    if args.constraints_dir:
-        constraints_store = Path(args.constraints_dir)
-        if constraints_store.is_dir():
-            constraints_store = constraints_store / "constraints.json"
-    else:
-        constraints_store = Path(args.model_dir) / "constraints.json"
+    # Load data (skip files that lack any requested name column)
+    df = load_all_csvs(args.input_dir, name_cols, helper_cols)
+    if df.empty:
+        print("No usable CSVs found (none contained the requested name columns).")
+        save_state(state_path, st)
+        sys.exit(0)
 
-    verifier = PersistentVerifier(model_dir=args.model_dir, n_features=11)
+    # Ensure merged frame has all needed columns
+    ensure_columns(df, name_cols + helper_cols)
 
-    csvs = sorted([p for p in in_dir.iterdir() if p.is_file() and p.suffix.lower() == ".csv"])
-    if not csvs:
-        raise SystemExit(f"No CSV files in {in_dir}")
+    # rid column
+    rid_col = args.id_col.strip() if args.id_col.strip() else "_rid"
+    if rid_col not in df.columns:
+        df[rid_col] = [f"row_{i}" for i in range(len(df))]
 
-    print(f"Found {len(csvs)} CSV file(s)")
-    done = 0
-    for p in csvs:
-        if process_file(p, out_dir, review_dir, columns, verifier, feedback_csv, constraints_store, args.emit_review):
-            done += 1
-    print(f"Done. Processed {done}/{len(csvs)} file(s)")
+    # Build entity name (first non-empty from name_cols)
+    df["_name_raw"] = df.apply(lambda r: pick_name_value(r, name_cols), axis=1)
+    df["_name_norm"] = df["_name_raw"].apply(normalize_text)
+
+    # Filter out empty names
+    keep_mask = df["_name_raw"].astype(str).str.strip().astype(bool)
+    df = df[keep_mask].reset_index(drop=True)
+
+    # Apply approvals from previous proposals of the CURRENT round (if provided)
+    approvals = read_feedback_approvals(args.feedback_dir, st.round)
+    if approvals:
+        prop_path = os.path.join(args.feedback_dir, f"proposals_round_{st.round:02d}.csv")
+        if os.path.exists(prop_path):
+            prop = pd.read_csv(prop_path, dtype=str)
+            for cid, decision in approvals.items():
+                if decision in {"approve","approved","yes","y"}:
+                    members = prop.loc[prop["cluster_id"]==cid, "rid"].tolist()
+                    if members:
+                        st.approved_clusters.append(members)
+        # advance to next round after applying approvals
+        st.round += 1
+
+    # Build feature cache over ALL rows
+    cache = FeatureCache(df["_name_raw"].tolist(), df, helper_cols)
+
+    # Candidate pair generation
+    slices = generate_blocked_slices(cache, cap=5000)
+    active_idx = list(range(len(df)))  # everyone stays active; approved groups become must-links
+
+    # Candidate pairs & scores
+    pairs_global: Dict[Tuple[int,int], float] = {}
+    active_set = set(active_idx)
+    for sl in slices:
+        sl = [i for i in sl if i in active_set]
+        if len(sl) < 2:
+            continue
+        n = len(sl)
+        k = min(max(10, int(math.sqrt(n))+6), n)
+        Xc_sub = cache.Xc[sl]
+        tfidf_pairs = knn_pairs_sparse(Xc_sub, k)
+        emb_pairs = []
+        if cache.embs is not None:
+            emb_pairs = knn_pairs_dense(cache.embs[sl], k)
+
+        cand = set()
+        for i,j,_ in tfidf_pairs:
+            gi, gj = sl[i], sl[j]
+            if gi > gj: gi, gj = gj, gi
+            cand.add((gi,gj))
+        for i,j,_ in emb_pairs:
+            gi, gj = sl[i], sl[j]
+            if gi > gj: gi, gj = gj, gi
+            cand.add((gi,gj))
+
+        for (i,j) in cand:
+            feat = pair_features(i, j, cache, df, helper_cols)
+            sc = blend_score(feat)
+            key = (i,j)
+            if key in pairs_global:
+                pairs_global[key] = max(pairs_global[key], sc)
+            else:
+                pairs_global[key] = sc
+
+    # Ensure acronym<->longform pairs get considered via helper buckets
+    for (i,j) in helper_pairs_for_acronyms(cache, strong_only=True, bucket_cap=1200):
+        key = (i,j)
+        feat = pair_features(i, j, cache, df, helper_cols)
+        sc = blend_score(feat)
+        if key in pairs_global:
+            pairs_global[key] = max(pairs_global[key], sc)
+        else:
+            pairs_global[key] = sc
+
+    # Thresholds
+    scores_all = [s for (i,j), s in pairs_global.items() if (i in active_set and j in active_set)]
+    neg_pairs = sample_likely_negatives(df, rid_col, helper_cols, max_pairs=min(20000, len(scores_all)*2 or 2000))
+    neg_scores = []
+    for (i,j) in neg_pairs:
+        key = (i,j) if i<j else (j,i)
+        if key in pairs_global:
+            neg_scores.append(pairs_global[key])
+        else:
+            feat = pair_features(i, j, cache, df, helper_cols)
+            neg_scores.append(blend_score(feat))
+
+    thresholds = calibrate_threshold_from_scores(scores_all, neg_scores)
+    st.thresholds = thresholds
+
+    scored_pairs = [(i,j,s) for (i,j), s in pairs_global.items()]
+
+    # Build must-link groups from previously approved clusters (by index)
+    rid_to_idx = {str(df.iloc[i][rid_col]): i for i in range(len(df))}
+    must_groups_idx: List[List[int]] = []
+    for grp in st.approved_clusters:
+        idxs = [rid_to_idx[r] for r in grp if r in rid_to_idx]
+        if len(idxs) >= 2:
+            must_groups_idx.append(sorted(set(idxs)))
+
+    # Build clusters at current round threshold + strong auto-merge
+    thr = thresholds[min(st.round-1, len(thresholds)-1)]
+    clusters_idx = build_clusters_from_pairs(
+        idxs=active_idx,
+        pairs=scored_pairs,
+        threshold=thr,
+        must_groups_idx=must_groups_idx,
+        rid_list=df[rid_col].astype(str).tolist(),
+        cache=cache,
+        df=df,
+        helper_cols=helper_cols,
+        auto_merge=True
+    )
+
+    # If nothing proposed, try next stricter threshold in this run to avoid “empty” round
+    tried = 0
+    while not clusters_idx and tried < len(thresholds)-1:
+        tried += 1
+        thr_next = thresholds[min(st.round-1+tried, len(thresholds)-1)]
+        clusters_idx = build_clusters_from_pairs(
+            idxs=active_idx,
+            pairs=scored_pairs,
+            threshold=thr_next,
+            must_groups_idx=must_groups_idx,
+            rid_list=df[rid_col].astype(str).tolist(),
+            cache=cache,
+            df=df,
+            helper_cols=helper_cols,
+            auto_merge=True
+        )
+
+    # Prepare mapping + decide which clusters need review
+    rid_list = df[rid_col].astype(str).tolist()
+    comp_rids = [sorted(rid_list[i] for i in comp) for comp in clusters_idx]
+    comp_ridsets = [frozenset(cr) for cr in comp_rids]
+
+    approved_sets = [frozenset(grp) for grp in st.approved_clusters]
+    approved_setset = set(approved_sets)
+
+    rid_to_cluster = {}
+    review_clusters = []
+    approved_index = {frozenset(grp): k+1 for k, grp in enumerate(st.approved_clusters)}
+
+    review_counter = 0
+    for comp, comp_set, comp_rid_list in zip(clusters_idx, comp_ridsets, comp_rids):
+        if comp_set in approved_setset:
+            fzk = approved_index.get(comp_set, len(approved_index)+1)
+            approved_index[comp_set] = fzk
+            for rid in comp_rid_list:
+                rid_to_cluster[rid] = f"FZ{fzk}"
+        else:
+            review_counter += 1
+            for rid in comp_rid_list:
+                rid_to_cluster[rid] = f"R{st.round}_C{review_counter}"
+            review_clusters.append(comp)
+
+    mapping = pd.DataFrame({
+        rid_col: df[rid_col].astype(str),
+        "name": df["_name_raw"],
+        "cluster_id": [rid_to_cluster.get(str(df.iloc[i][rid_col]), "") for i in range(len(df))]
+    })
+    out_map = os.path.join(args.output_dir, "clusters_latest.csv")
+    mapping.to_csv(out_map, index=False)
+
+    # Write proposals JUST for clusters needing review
+    scores_by_pair = {k:v for k,v in pairs_global.items()}
+    write_proposals(args.feedback_dir, st.round, review_clusters, df, rid_col, "_name_raw", scores_by_pair)
+
+    save_state(state_path, st)
+
+    print(f"Round {st.round} proposals written to {os.path.join(args.feedback_dir, f'proposals_round_{st.round:02d}.csv')}")
+    print(f"Latest cluster mapping written to {out_map}")
+    print("Next step:")
+    print(f" - Open approvals_round_{st.round:02d}.csv and mark which clusters to approve (decision=approve).")
+    print(" - Re-run this script to refine with your feedback. Approved clusters won’t split, and can merge/gain members automatically if evidence is strong.")
 
 if __name__ == "__main__":
     main()

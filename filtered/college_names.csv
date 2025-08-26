@@ -1,58 +1,58 @@
-names
-Stanford University
-Purdue University
-Virginia Polytechnic Institute and State University
-VT
-Princeton
-"University of California, Los Angeles"
-VPI
-Virginia Tech
-UC Davis
-"University of California, San Diego"
-UCLA
-University of Maryland
-Berkeley
-Massachusetts Institute of Technology
-Maryland
-Leland Stanford Junior University
-Duke University
-"University of California, Berkeley"
-Georgia Institute of Technology
-VPI&SU
-Purdue
-University of Florida
-Harvard University
-UConn
-UCD
-CMU
-Cornell
-University of Virginia
-GT
-University of Connecticut
-Cal
-UMD
-MIT
-University of Pennsylvania
-Columbia University
-UC San Diego
-Columbia
-"University of Maryland, College Park"
-UF
-Princeton University
-Virginia Polytechnic Institute
-UCSD
-GaTech
-Harvard
-UVA
-Carnegie Mellon University
-UC Berkeley
-Penn
-Columbia University in the City of New York
-Florida
-Cornell University
-"University of California, Davis"
-Carnegie Mellon
-Stanford
-UPenn
-Duke
-Georgia Tech
+names,location
+Stanford University,"Stanford, CA"
+Purdue University,"West Lafayette, IN"
+Virginia Polytechnic Institute and State University,"Blacksburg, VA"
+VT,"Blacksburg, VA"
+Princeton,"Princeton, NJ"
+"University of California, Los Angeles","Los Angeles, CA"
+VPI,"Blacksburg, VA"
+Virginia Tech,"Blacksburg, VA"
+UC Davis,"Davis, CA"
+"University of California, San Diego","La Jolla, CA"
+UCLA,"Los Angeles, CA"
+University of Maryland,"College Park, MD"
+Berkeley,"Berkeley, CA"
+Massachusetts Institute of Technology,"Cambridge, MA"
+Maryland,"College Park, MD"
+Leland Stanford Junior University,"Stanford, CA"
+Duke University,"Durham, NC"
+"University of California, Berkeley","Berkeley, CA"
+Georgia Institute of Technology,"Atlanta, GA"
+VPI&SU,"Blacksburg, VA"
+Purdue,"West Lafayette, IN"
+University of Florida,"Gainesville, FL"
+Harvard University,"Cambridge, MA"
+UConn,"Storrs, CT"
+UCD,"Davis, CA"
+CMU,"Pittsburgh, PA"
+Cornell,"Ithaca, NY"
+University of Virginia,"Charlottesville, VA"
+GT,"Atlanta, GA"
+University of Connecticut,"Storrs, CT"
+Cal,"Berkeley, CA"
+UMD,"College Park, MD"
+MIT,"Cambridge, MA"
+University of Pennsylvania,"Philadelphia, PA"
+Columbia University,"New York, NY"
+UC San Diego,"La Jolla, CA"
+Columbia,"New York, NY"
+"University of Maryland, College Park","College Park, MD"
+UF,"Gainesville, FL"
+Princeton University,"Princeton, NJ"
+Virginia Polytechnic Institute,"Blacksburg, VA"
+UCSD,"La Jolla, CA"
+GaTech,"Atlanta, GA"
+Harvard,"Cambridge, MA"
+UVA,"Charlottesville, VA"
+Carnegie Mellon University,"Pittsburgh, PA"
+UC Berkeley,"Berkeley, CA"
+Penn,"Philadelphia, PA"
+Columbia University in the City of New York,"New York, NY"
+Florida,"Gainesville, FL"
+Cornell University,"Ithaca, NY"
+"University of California, Davis","Davis, CA"
+Carnegie Mellon,"Pittsburgh, PA"
+Stanford,"Stanford, CA"
+UPenn,"Philadelphia, PA"
+Duke,"Durham, NC"
+Georgia Tech,"Atlanta, GA"
