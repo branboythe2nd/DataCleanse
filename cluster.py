@@ -852,7 +852,7 @@ def read_feedback_approvals(feedback_dir: str, round_num:int) -> Dict[str,str]:
 def write_proposals(feedback_dir: str, round_num:int, review_clusters: List[List[int]],
                     df: pd.DataFrame, rid_col:str, name_col:str,
                     scores_by_pair: Dict[Tuple[int,int], float]):
-    # 1) Member-level proposals (rows only for clusters needing review)
+    # ---------- 1) Member-level proposals (unchanged so you still get per-row detail) ----------
     rows = []
     for k, comp in enumerate(review_clusters, 1):
         # cohesion (avg pair score inside comp, if available)
@@ -874,45 +874,74 @@ def write_proposals(feedback_dir: str, round_num:int, review_clusters: List[List
                 "cluster_id": cluster_id,
                 "rid": str(df.iloc[idx][rid_col]),
                 "name": df.iloc[idx][name_col],
-                "source": df.iloc[idx]["_source_file"],
-                "cohesion_estimate": round(coh, 3)
+                "source": df.iloc[idx].get("_source_file", ""),
+                "cohesion_estimate": round(coh, 3),
             })
 
     out = pd.DataFrame(rows)
     prop_path = os.path.join(feedback_dir, f"proposals_round_{round_num:02d}.csv")
     out.to_csv(prop_path, index=False)
 
-    # 2) Approvals file (one row per review cluster) with "items"
+    # ---------- 2) Approvals file (clean: 1 row per cluster) ----------
     ap_path = os.path.join(feedback_dir, f"approvals_round_{round_num:02d}.csv")
 
-    def _item_label(rid_val, name_val):
-        if is_pure_acronym_raw(name_val):
-            return f"{rid_val} — {name_val}"
-        init = initialism_from_norm(normalize_text(name_val))
-        if init and clean_acronym(name_val) != init:
-            return f"{rid_val} — {name_val} [{init}]"
-        return f"{rid_val} — {name_val}"
+    def _better_display(cur: str, cand: str) -> str:
+        # Prefer non-acronym and longer names for display
+        def score(s: str) -> Tuple[int,int]:
+            return (0 if is_pure_acronym_raw(s) else 1, len(s))
+        return cand if score(cand) > score(cur) else cur
 
     ap_rows = []
     for cid, sub in out.groupby("cluster_id", sort=True):
-        size = int(len(sub))
-        coh = float(sub["cohesion_estimate"].iloc[0]) if "cohesion_estimate" in sub else 0.0
-        items_str = " | ".join(_item_label(r, n) for r, n in zip(sub["rid"], sub["name"]))
+        # Collect names; dedupe by normalized text, keep the best-looking variant
+        norm_to_display: Dict[str, str] = {}
+        counts: Dict[str, int] = {}
+        for n in (sub["name"].astype(str).tolist()):
+            nice = ("" if pd.isna(n) else str(n)).strip()
+            if not nice:
+                continue
+            norm = normalize_text(nice)
+            if not norm:
+                continue
+            counts[norm] = counts.get(norm, 0) + 1
+            if norm in norm_to_display:
+                norm_to_display[norm] = _better_display(norm_to_display[norm], nice)
+            else:
+                norm_to_display[norm] = nice
+
+        # Canonical = most frequent normalized name; tie-break: prefer non-acronym, then longer
+        if norm_to_display:
+            def canon_key(norm):
+                disp = norm_to_display[norm]
+                return (counts.get(norm, 0), 0 if is_pure_acronym_raw(disp) else 1, len(disp))
+            best_norm = max(norm_to_display.keys(), key=canon_key)
+            canonical = norm_to_display[best_norm]
+        else:
+            canonical = sub["name"].iloc[0] if len(sub) else ""
+
+        # Items = unique names (pretty), not rows; sorted with longforms first
+        items_list = list(norm_to_display.values()) if norm_to_display else ([canonical] if canonical else [])
+        items_list = sorted(items_list, key=lambda s: (0 if is_pure_acronym_raw(s) else 1, s.lower(), len(s)))
+        items_str = " | ".join(items_list)
+
         ap_rows.append({
             "cluster_id": cid,
-            "size": size,
-            "cohesion": round(coh, 3),
+            "canonical_name": canonical,
             "items": items_str,
-            "decision": ""  # preserve below if the file already exists
+            "decision": ""
         })
-    ap_new = pd.DataFrame(ap_rows, columns=["cluster_id","size","cohesion","items","decision"])
 
+    ap_new = pd.DataFrame(ap_rows, columns=["cluster_id", "canonical_name", "items", "decision"])
+
+    # Preserve prior decisions if the file already exists
     if os.path.exists(ap_path):
         try:
             ap_old = pd.read_csv(ap_path, dtype=str)
             if "cluster_id" in ap_old.columns:
-                old_dec = dict(zip(ap_old["cluster_id"].astype(str),
-                                   ap_old["decision"] if "decision" in ap_old.columns else [""]*len(ap_old)))
+                old_dec = dict(zip(
+                    ap_old["cluster_id"].astype(str),
+                    ap_old["decision"] if "decision" in ap_old.columns else [""]*len(ap_old)
+                ))
                 ap_new["decision"] = ap_new["cluster_id"].map(old_dec).fillna("")
         except Exception:
             pass
