@@ -1,0 +1,5 @@
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: #f8fafc; color: #0f172a; }
+button { cursor: pointer; }
+table { border-collapse: collapse; }
+th, td { border-bottom: 1px solid #e5e7eb; }
